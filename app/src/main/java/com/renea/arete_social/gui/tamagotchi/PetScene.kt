@@ -2,7 +2,7 @@ package com.renea.arete_social.gui.tamagotchi
 
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
+
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -72,14 +72,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
 
 @DrawableRes
-private val fondosPixelMascota = intArrayOf(
-    R.drawable.bg_pixel_013, R.drawable.bg_pixel_024,
-    R.drawable.bg_pixel_025, R.drawable.bg_pixel_028, R.drawable.bg_pixel_030,
-    R.drawable.bg_pixel_084
-)
-
-/** Cada [FONDO_CAMBIA_CADA] el escenario cambia solo; también se puede cambiar con el botón. */
-private val FONDO_CAMBIA_CADA = 25.seconds
+private val fondoPredeterminadoMascota = R.drawable.bg_pixel_028
 
 /** Alto total del escenario Cyberpunk. */
 internal val ALTO_ESCENARIO = 485.dp
@@ -134,15 +127,7 @@ internal fun PetScene(
     /** Botón «Cuidar» a la izquierda que despliega los cuidados hacia la derecha. Solo si [conCuidados]. */
     accionesLaterales: @Composable () -> Unit = {}
 ) {
-    var fondoIndex by rememberSaveable(pet.name) {
-        mutableIntStateOf(Math.floorMod(pet.name.hashCode(), fondosPixelMascota.size))
-    }
-    LaunchedEffect(pet.name) {
-        while (true) {
-            delay(FONDO_CAMBIA_CADA)
-            fondoIndex = (fondoIndex + 1) % fondosPixelMascota.size
-        }
-    }
+
     // Se conserva el último texto para que el globo no quede vacío mientras se desvanece.
     var ultimoMensaje by remember { mutableStateOf("") }
     LaunchedEffect(mensaje) { if (mensaje != null) ultimoMensaje = mensaje }
@@ -187,14 +172,12 @@ internal fun PetScene(
                 .clip(formaInterior)
                 .background(Brush.verticalGradient(listOf(PetPalette.SceneTop, PetPalette.SceneBottom)))
         ) {
-            Crossfade(targetState = fondoIndex, animationSpec = tween(900), label = "fondo") { indice ->
-                Image(
-                    painter = painterResource(id = fondosPixelMascota[indice]),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            Image(
+                painter = painterResource(id = fondoPredeterminadoMascota),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
             // Velo para que los rótulos siempre se lean sobre cualquier fondo pixel art.
             Box(
                 Modifier.fillMaxSize().background(
@@ -238,18 +221,8 @@ internal fun PetScene(
                         esOscuro = esOscuro
                     )
 
-                    // Derecha: Botón cambiar fondo de escena
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (esOscuro) Color(0xCC08111C) else Color(0xDDF0FDF4))
-                            .border(1.2.dp, colorCyber.copy(alpha = if (esOscuro) 0.65f else 0.85f), RoundedCornerShape(8.dp))
-                            .clickable(role = Role.Button) { fondoIndex = (fondoIndex + 1) % fondosPixelMascota.size },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        PetIcons.Scene(Modifier.size(17.dp), if (esOscuro) Color.White else colorCyber)
-                    }
+                    // Derecha: Espaciador para balance simétrico del HUD
+                    Spacer(modifier = Modifier.size(36.dp))
                 }
 
                 // ── Tier 2: Muelle de Telemetría de Necesidades (HUD Vital Stats Dock) ──

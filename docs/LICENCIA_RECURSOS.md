@@ -30,13 +30,8 @@ Usted es libre de:
 
 ### B. Fondos Cyberpunk de Escenarios Pixel Art (Mascota Virtual / Michi)
 - **Archivos:**
-  - `app/src/main/res/drawable-nodpi/bg_pixel_013.png`
-  - `app/src/main/res/drawable-nodpi/bg_pixel_024.png`
-  - `app/src/main/res/drawable-nodpi/bg_pixel_025.png`
   - `app/src/main/res/drawable-nodpi/bg_pixel_028.png`
-  - `app/src/main/res/drawable-nodpi/bg_pixel_030.png`
-  - `app/src/main/res/drawable-nodpi/bg_pixel_084.png`
-- **Uso:** Escenarios rotativos en `PetScene.kt` para la simulación del ecosistema de Michi.
+- **Uso:** Fondo temático en `PetScene.kt` para la simulación del ecosistema de Michi.
 - **Autoría:** Equipo de desarrollo de Aréte mediante el taller interno de pixel art (estandarizado y validado por los scripts en `scripts/pixel_art/`).
 - **Licencia:** CC-BY-4.0 / GPL-3.0.
 

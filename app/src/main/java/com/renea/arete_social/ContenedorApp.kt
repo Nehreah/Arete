@@ -131,7 +131,7 @@ class ContenedorApp(private val context: Context) {
     // ─── Subsistema Local-First y P2P (Auditoría Arquitectónica v3) ───
     val featureFlagComunidadesP2p: Boolean = true
     val localDatabase: AppLocalDatabase by lazy { AppLocalDatabase.getInstance(context.applicationContext) }
-    val deviceKeyManager = DeviceKeyManager()
+    val deviceKeyManager = DeviceKeyManager(context = context.applicationContext)
     val signatureManager = SignatureManager()
     val epochKeyManager = EpochKeyManager()
     val communityLedgers = java.util.concurrent.ConcurrentHashMap<String, com.renea.arete_social.data.community.CommunityLedger>()

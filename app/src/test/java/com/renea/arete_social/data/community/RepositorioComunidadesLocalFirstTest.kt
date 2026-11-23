@@ -33,7 +33,7 @@ class RepositorioComunidadesLocalFirstTest {
         localRepo = mockk(relaxed = true)
         remoteRepo = mockk(relaxed = true)
         identityManager = IdentityManager().apply { loadFromPhrase(testWords) }
-        deviceKeyManager = DeviceKeyManager("CustomNonAndroidProvider")
+        deviceKeyManager = DeviceKeyManager(keyStoreProvider = "CustomNonAndroidProvider")
 
         repository = RepositorioComunidadesLocalFirst(
             localRepo = localRepo,

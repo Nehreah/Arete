@@ -230,7 +230,8 @@ class CifradorE2eeAndroid(
         miClavePrivada: PrivateKey,
         clavePublicaContraparte: PublicKey,
         miClavePublicaBase64: String,
-        clavePublicaContraparteBase64: String
+        clavePublicaContraparteBase64: String,
+        esV4: Boolean = true
     ): SecretKeySpec {
         val keyAgreement = KeyAgreement.getInstance(ALGORITMO_ACUERDO)
         keyAgreement.init(miClavePrivada)
@@ -244,7 +245,8 @@ class CifradorE2eeAndroid(
             Pair(clavePublicaContraparteBase64, miClavePublicaBase64)
         }
         val salt = MessageDigest.getInstance("SHA-256").digest("$primera|$segunda".toByteArray(Charsets.UTF_8))
-        val info = "antired-e2ee-v3".toByteArray(Charsets.UTF_8)
+        val infoString = if (esV4) "arete-e2ee-v4" else "antired-e2ee-v3"
+        val info = infoString.toByteArray(Charsets.UTF_8)
 
         val aesKeyBytes = hkdfSha256(sharedSecret, salt, info, len = 32)
         return SecretKeySpec(aesKeyBytes, "AES")
@@ -263,11 +265,13 @@ class CifradorE2eeAndroid(
             val miPublicaBase64 = obtenerClavePublicaPropia(miUsuarioId)
             val publicaDestino = decodificarClavePublica(clavePublicaDestinatarioBase64)
 
+            val esV4 = chatId.isNotBlank()
             val secretKey = derivarClaveAes(
                 miClavePrivada = miPrivada,
                 clavePublicaContraparte = publicaDestino,
                 miClavePublicaBase64 = miPublicaBase64,
-                clavePublicaContraparteBase64 = clavePublicaDestinatarioBase64
+                clavePublicaContraparteBase64 = clavePublicaDestinatarioBase64,
+                esV4 = esV4
             )
 
             val iv = ByteArray(GCM_IV_LENGTH).also { secureRandom.nextBytes(it) }
@@ -318,14 +322,15 @@ class CifradorE2eeAndroid(
             val miPublicaBase64 = obtenerClavePublicaPropia(miUsuarioId)
             val publicaContraparte = decodificarClavePublica(clavePublicaContraparteBase64)
 
+            val esV4 = textoCifrado.startsWith(PREFIX_E2EE_V4)
             val secretKey = derivarClaveAes(
                 miClavePrivada = miPrivada,
                 clavePublicaContraparte = publicaContraparte,
                 miClavePublicaBase64 = miPublicaBase64,
-                clavePublicaContraparteBase64 = clavePublicaContraparteBase64
+                clavePublicaContraparteBase64 = clavePublicaContraparteBase64,
+                esV4 = esV4
             )
 
-            val esV4 = textoCifrado.startsWith(PREFIX_E2EE_V4)
             val partes = if (esV4) {
                 textoCifrado.removePrefix(PREFIX_E2EE_V4).split(":")
             } else {

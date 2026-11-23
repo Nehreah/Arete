@@ -147,7 +147,7 @@ class MessageRouterMesh(
 
         // M-02: Rate limit por origen para mitigar inundación y DoS de verificación ECDSA
         if (origenMac != null && !permitir(origenMac)) {
-            Log.w(TAG, "Rate-limit superado para peer $origenMac. Paquete descartado.")
+            Log.w(TAG, "Rate-limit superado para peer ${anonimizarMac(origenMac)}. Paquete descartado.")
             return
         }
 
@@ -195,7 +195,7 @@ class MessageRouterMesh(
                         clavePublicaBase64 = clavePublica
                     )
                 if (!valida) {
-                    Log.w(TAG, "⚠️ Paquete ${paquete.id.take(8)} de ${paquete.remitenteId} sin firma válida. Descartado por seguridad.")
+                    Log.w(TAG, "⚠️ Paquete ${paquete.id.take(8)} de ${anonimizarId(paquete.remitenteId)} sin firma válida. Descartado por seguridad.")
                     return
                 }
 
@@ -218,7 +218,7 @@ class MessageRouterMesh(
                             // S-02: La clave no coincide con el pin almacenado.
                             // NUNCA sobreescribir el pin automáticamente, ni para identidades NO_VERIFICADO ni VERIFICADO.
                             // Un cambio de clave requiere confirmación explícita del usuario vía confiarEnNuevaIdentidad.
-                            Log.w(TAG, "Conflicto TOFU: Clave de ${paquete.remitenteId} discordante con pin fijado. Paquete rechazado.")
+                            Log.w(TAG, "Conflicto TOFU: Clave de ${anonimizarId(paquete.remitenteId)} discordante con pin fijado. Paquete rechazado.")
                             false
                         }
                     }
@@ -232,7 +232,7 @@ class MessageRouterMesh(
                             } else {
                                 // Conflicto directo: clave ilegítima.
                                 pinesIdentidad.fijar(paquete.remitenteId, remota, EstadoVerificacionIdentidad.VERIFICADO)
-                                Log.w(TAG, "Conflicto TOFU primer contacto: paquete con clave atacante para ${paquete.remitenteId}. Fijando clave verificada.")
+                                Log.w(TAG, "Conflicto TOFU primer contacto: paquete con clave atacante para ${anonimizarId(paquete.remitenteId)}. Fijando clave verificada.")
                                 false
                             }
                         } else {
@@ -462,7 +462,7 @@ class MessageRouterMesh(
 
     override fun tieneAlertaTofu(remitenteId: String): Boolean {
         if (clavesSospechosasRecientes.keys.any { coincidenIds(it, remitenteId) }) return true
-        val estado = pinesIdentidad?.obtenerEstado(remitenteId)
+        val estado = pinesIdentidad.obtenerEstado(remitenteId)
         return estado == EstadoVerificacionIdentidad.ALERTA_CONFLICTO
     }
 
@@ -506,5 +506,14 @@ class MessageRouterMesh(
         if (eliminados > 0) {
             Log.d(TAG, "Dedup limpieza: $eliminados entradas expiradas eliminadas")
         }
+    }
+
+    private fun anonimizarMac(mac: String): String {
+        val partes = mac.split(":")
+        return if (partes.size >= 6) "${partes[0]}:${partes[1]}:**:**:**:${partes[5]}" else "***"
+    }
+
+    private fun anonimizarId(id: String): String {
+        return if (id.length > 8) "${id.take(4)}...${id.takeLast(4)}" else id.take(4)
     }
 }

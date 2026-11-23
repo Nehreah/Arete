@@ -85,8 +85,9 @@ object GattFramer {
     // ─────────────────────────────────────────────────────────────────────────
 
     fun ensamblar(mac: String, frame: ByteArray): ByteArray? {
+        val macAnonima = anonimizarMac(mac)
         if (frame.size < HEADER_SIZE) {
-            Log.w(TAG, "[$mac] Frame demasiado corto (${frame.size} bytes), descartado")
+            Log.w(TAG, "[$macAnonima] Frame demasiado corto (${frame.size} bytes), descartado")
             return null
         }
 
@@ -111,7 +112,7 @@ object GattFramer {
 
             val session = if (esFirst) {
                 if (total !in 2..MAX_FRAGMENTOS) {
-                    Log.w(TAG, "[$mac] totalFragments=$total fuera de rango, descartado")
+                    Log.w(TAG, "[$macAnonima] totalFragments=$total fuera de rango, descartado")
                     return null
                 }
                 hacerHuecoParaSesion(mac)
@@ -122,11 +123,11 @@ object GattFramer {
             }
 
             if (session == null) {
-                Log.w(TAG, "[$mac] Fragmento $index/$total sin sesión activa (msgId=$msgId), descartado")
+                Log.w(TAG, "[$macAnonima] Fragmento $index/$total sin sesión activa (msgId=$msgId), descartado")
                 return null
             }
             if (total != session.total || index >= session.fragments.size) {
-                Log.w(TAG, "[$mac] Fragmento inconsistente (idx=$index total=$total esperado=${session.total})")
+                Log.w(TAG, "[$macAnonima] Fragmento inconsistente (idx=$index total=$total esperado=${session.total})")
                 sessions.remove(sessionKey)
                 return null
             }
@@ -135,7 +136,7 @@ object GattFramer {
                 session.fragments[index] = chunk
                 session.bytes += chunk.size
                 if (session.bytes > MAX_BYTES_MENSAJE) {
-                    Log.w(TAG, "[$mac] Mensaje excede $MAX_BYTES_MENSAJE bytes, descartado")
+                    Log.w(TAG, "[$macAnonima] Mensaje excede $MAX_BYTES_MENSAJE bytes, descartado")
                     sessions.remove(sessionKey)
                     return null
                 }
@@ -197,5 +198,10 @@ object GattFramer {
             offset = end
         }
         return result
+    }
+
+    private fun anonimizarMac(mac: String): String {
+        val partes = mac.split(":")
+        return if (partes.size >= 6) "${partes[0]}:${partes[1]}:**:**:**:${partes[5]}" else "***"
     }
 }

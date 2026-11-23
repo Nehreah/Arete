@@ -22,6 +22,7 @@ import java.security.PublicKey
 import java.security.spec.ECGenParameterSpec
 import java.security.spec.ECPoint
 import java.security.spec.ECPublicKeySpec
+import android.util.Log
 import java.math.BigInteger
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -33,7 +34,8 @@ import java.util.concurrent.ConcurrentHashMap
 class CommunityRepositoryLocal(
     private val database: AppLocalDatabase,
     private val signatureManager: SignatureManager,
-    private val epochKeyManager: EpochKeyManager
+    private val epochKeyManager: EpochKeyManager,
+    private val epochKeyStorageProtector: EpochKeyStorageProtector = EpochKeyStorageProtector()
 ) {
     private val communityDao = database.communityDao()
     private val ledgerDao = database.ledgerDao()
@@ -136,8 +138,62 @@ class CommunityRepositoryLocal(
                 ledger.applyOperation(envelope)
             }
 
+            // ARETE-FUNC-001: Rehidratar claves de época en EpochKeyManager tras reinicio
+            rehydrateEpochKeysLocked(communityIdHex)
+
             ledger
         }
+    }
+
+    /**
+     * Rehidrata las claves de época almacenadas en Room hacia el EpochKeyManager en memoria (ARETE-FUNC-001).
+     */
+    private suspend fun rehydrateEpochKeysLocked(communityIdHex: String) {
+        val storedEpochKeys = ledgerDao.getAllEpochKeys(communityIdHex)
+        val communityIdBytes = hexToBytes(communityIdHex)
+        for (entity in storedEpochKeys) {
+            try {
+                val ke = epochKeyStorageProtector.decryptKe(entity.keHex)
+                val epochIdBytes = hexToBytes(entity.epochIdHex)
+                epochKeyManager.storeEpochKey(
+                    communityId = communityIdBytes,
+                    epochId = epochIdBytes,
+                    ke = ke,
+                    isCanonical = entity.isCanonical
+                )
+            } catch (e: Exception) {
+                Log.w("CommunityRepository", "Error al descifrar clave de época ${entity.epochIdHex} para comunidad $communityIdHex", e)
+            }
+        }
+    }
+
+    suspend fun rehydrateEpochKeys(communityIdHex: String) = mutex.withLock {
+        rehydrateEpochKeysLocked(communityIdHex)
+    }
+
+    /**
+     * Almacena de forma segura y cifrada una clave de época recibida (ARETE-SEC-001).
+     */
+    suspend fun storeEpochKey(
+        communityIdHex: String,
+        epochIdHex: String,
+        ke: ByteArray,
+        isCanonical: Boolean = true
+    ) = mutex.withLock {
+        val encryptedKe = epochKeyStorageProtector.encryptKe(ke)
+        val entity = EpochKeyEntity(
+            communityIdHex = communityIdHex,
+            epochIdHex = epochIdHex,
+            keHex = encryptedKe,
+            isCanonical = isCanonical
+        )
+        ledgerDao.upsertEpochKey(entity)
+        epochKeyManager.storeEpochKey(
+            communityId = hexToBytes(communityIdHex),
+            epochId = hexToBytes(epochIdHex),
+            ke = ke,
+            isCanonical = isCanonical
+        )
     }
 
     /**
@@ -226,7 +282,7 @@ class CommunityRepositoryLocal(
         val epochEntity = EpochKeyEntity(
             communityIdHex = communityIdHex,
             epochIdHex = initialEpochIdHex,
-            keHex = bytesToHex(initialKe),
+            keHex = epochKeyStorageProtector.encryptKe(initialKe),
             isCanonical = true
         )
         ledgerDao.upsertEpochKey(epochEntity)
