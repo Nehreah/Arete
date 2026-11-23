@@ -1,6 +1,6 @@
 # Licencia y Atribución de Recursos Gráficos y Multimedia (Assets)
 
-Este documento certifica y detalla la procedencia, autoría y términos de licenciamiento de todos los recursos gráficos, ilustraciones, iconos y fondos incluidos en el repositorio de **Aréte** ([AntiRed](https://github.com/Nehreah/AntiRed)), en estricto cumplimiento de los estándares de software libre de [F-Droid](https://f-droid.org/).
+Este documento certifica y detalla la procedencia, autoría y términos de licenciamiento de todos los recursos gráficos, ilustraciones, iconos y fondos incluidos en el repositorio de **Aréte** ([Arete](https://github.com/Nehreah/Arete)), en estricto cumplimiento de los estándares de software libre de [F-Droid](https://f-droid.org/).
 
 ---
 
@@ -25,7 +25,7 @@ Usted es libre de:
   - `app/src/main/res/drawable/img_campus_plazoleta_dia.png`
   - `app/src/main/res/drawable/img_campus_plazoleta_noche.png`
 - **Uso:** Fondos dinámicos de cabecera y plazoleta que responden al ciclo día/noche en `AmbienteAssets.kt`.
-- **Autoría:** Desarrolladores de Aréte (AntiRed). Diseñadas y editadas digitalmente para representar la plazoleta universitaria y espacios de encuentro.
+- **Autoría:** Desarrolladores de Aréte. Diseñadas y editadas digitalmente para representar la plazoleta universitaria y espacios de encuentro.
 - **Licencia:** CC-BY-4.0 / GPL-3.0.
 
 ### B. Fondos Cyberpunk de Escenarios Pixel Art (Mascota Virtual / Michi)
@@ -69,4 +69,4 @@ Usted es libre de:
 
 Para cualquier consulta sobre los derechos de autor o licenciamiento de estos activos, puede contactar al comité del proyecto a través de:
 - Correo: `politicaarete@gmail.com`
-- Repositorio: [https://github.com/Nehreah/AntiRed](https://github.com/Nehreah/AntiRed)
+- Repositorio: [https://github.com/Nehreah/Arete](https://github.com/Nehreah/Arete)

@@ -83,7 +83,7 @@ data class PerfilIntereses(
 }
 
 /**
- * Catálogo modular y extensible de gustos e intereses para la comunidad AntiRed.
+ * Catálogo modular y extensible de gustos e intereses para la comunidad Aréte.
  * Código completamente abierto a agregar nuevas categorías o tipos.
  */
 object CatalogoIntereses {

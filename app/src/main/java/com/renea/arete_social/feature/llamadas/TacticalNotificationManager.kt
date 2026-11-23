@@ -97,7 +97,7 @@ class TacticalNotificationManager(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && notificationManager != null) {
                 val channel = NotificationChannel(
                     channelId,
-                    "Mensajes y Notificaciones AntiRed",
+                    "Mensajes y Notificaciones Aréte",
                     NotificationManager.IMPORTANCE_HIGH
                 ).apply {
                     description = "Avisos de nuevos mensajes y solicitudes de la red táctica"

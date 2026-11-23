@@ -444,6 +444,6 @@ internal fun CajaEscribirNotaRetro(
             }
         }
         Spacer(Modifier.height(8.dp))
-        Text("Las publicaciones siguen la vigencia actual de AntiRed.", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f), fontSize = 9.sp)
+        Text("Las publicaciones siguen la vigencia actual de Aréte.", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f), fontSize = 9.sp)
     }
 }

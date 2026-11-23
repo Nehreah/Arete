@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Términos de Servicio, Acuerdo de Licencia de Usuario Final (EULA) y Normas Comunitarias de Aréte.">
+  <title>Términos de Servicio y EULA | Aréte</title>
+  <link rel="icon" type="image/png" href="assets/icono.png">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --primary-deep: #431019;
+      --primary: #941b2c;
+      --primary-light: #c92a3b;
+      --primary-tint: #fbebee;
+      --primary-border: #f2cbd1;
+      --primary-glow: rgba(148, 27, 44, 0.16);
+      --bg: #f8f6f7;
+      --surface: #ffffff;
+      --surface-alt: #fdfafd;
+      --card-bg: #ffffff;
+      --texto: #221d20;
+      --suave: #62585e;
+      --borde: #e8dfe3;
+      --borde-light: #f0e8eb;
+      --acento: #f7ebef;
+      --verde-badge: #1b7340;
+      --verde-bg: #eaf6ee;
+      --shadow: 0 10px 30px rgba(67, 16, 25, 0.07);
+      --shadow-hover: 0 16px 40px rgba(67, 16, 25, 0.14);
+      --gradient-hero: linear-gradient(135deg, #431019 0%, #781523 60%, #941b2c 100%);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary-deep: #1e060b;
+        --primary: #d92338;
+        --primary-light: #ff646e;
+        --primary-tint: #2a1116;
+        --primary-border: #4d1c25;
+        --primary-glow: rgba(255, 100, 110, 0.18);
+        --bg: #0f1013;
+        --surface: #18191f;
+        --surface-alt: #1e2027;
+        --card-bg: #1c1e24;
+        --texto: #f2edf0;
+        --suave: #a99fa6;
+        --borde: #2c2f38;
+        --borde-light: #232630;
+        --acento: #26171b;
+        --verde-badge: #4ade80;
+        --verde-bg: #11291b;
+        --shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+        --shadow-hover: 0 20px 48px rgba(0, 0, 0, 0.75);
+        --gradient-hero: linear-gradient(135deg, #1e060b 0%, #3d0e16 60%, #61121d 100%);
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--texto);
+      font: 16px/1.7 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      width: min(900px, calc(100% - 36px));
+      margin: 0 auto;
+    }
+
+    /* Navbar */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(var(--surface), 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--borde);
+    }
+    .nav-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--texto);
+      font-weight: 700;
+      font-size: 1.15rem;
+    }
+    .brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      list-style: none;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--suave);
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+    .nav-btn-back {
+      background: var(--primary-tint);
+      color: var(--primary) !important;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-weight: 600 !important;
+      border: 1px solid var(--primary-border);
+    }
+
+    /* Header */
+    header {
+      background: var(--gradient-hero);
+      color: #ffffff;
+      padding: 55px 0 45px;
+      position: relative;
+      overflow: hidden;
+    }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: .8rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.16);
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: clamp(2rem, 4.5vw, 2.7rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    header p {
+      font-size: 1.05rem;
+      color: rgba(255, 255, 255, 0.9);
+      max-width: 680px;
+    }
+
+    /* Content Area */
+    main {
+      padding: 40px 0 70px;
+    }
+    .article-card {
+      background: var(--surface);
+      border: 1px solid var(--borde);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: var(--shadow);
+    }
+    @media (max-width: 600px) {
+      .article-card { padding: 24px 18px; }
+    }
+
+    .alert-banner {
+      background: var(--primary-tint);
+      border-left: 5px solid var(--primary);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    .alert-banner h3 {
+      color: var(--primary);
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .alert-banner p {
+      color: var(--texto);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .section-block {
+      margin-bottom: 32px;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--borde-light);
+    }
+    .section-block:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .section-block h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--texto);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-block p {
+      font-size: 1rem;
+      color: var(--texto);
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+    .section-block ul {
+      margin: 10px 0 14px 24px;
+      color: var(--texto);
+    }
+    .section-block li {
+      margin-bottom: 8px;
+      font-size: 0.98rem;
+    }
+
+    .highlight-badge {
+      display: inline-block;
+      background: var(--primary-tint);
+      color: var(--primary);
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--borde);
+      padding: 40px 0 30px;
+      color: var(--suave);
+      font-size: 0.9rem;
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: center;
+    }
+    .footer-links {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .footer-links a {
+      color: var(--suave);
+      text-decoration: none;
+    }
+    .footer-links a:hover {
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barra Superior -->
+  <nav>
+    <div class="wrap nav-inner">
+      <a href="index.html" class="brand">
+        <img src="assets/icono.png" alt="Aréte Logo">
+        <span>Aréte</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Inicio</a></li>
+        <li><a href="politica_privacidad.html">Privacidad</a></li>
+        <li><a href="index.html#descarga" class="nav-btn-back">📥 Descargar APK</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Header -->
+  <header>
+    <div class="wrap">
+      <div class="eyebrow">📜 Términos de Servicio y Licencia</div>
+      <h1>Acuerdo de Licencia de Usuario Final (EULA) y Normas</h1>
+      <p>Reglas claras, transparentes y orientadas al respeto y la protección humana mutua en la red libre de Aréte.</p>
+    </div>
+  </header>
+
+  <!-- Contenido -->
+  <main>
+    <div class="wrap">
+      <article class="article-card">
+
+        <!-- Banner de Advertencia Importante -->
+        <div class="alert-banner">
+          <h3>🔞 Exclusivo para Mayores de Edad (+18 Años)</h3>
+          <p>
+            Aréte es una red social y de mensajería reservada <strong>estrictamente para personas adultas (+18 años)</strong>. Mantenemos una política inquebrantable de <strong>tolerancia cero</strong> ante acoso, odio, discriminación o cualquier forma de abuso sexual infantil (CSAM).
+          </p>
+        </div>
+
+        <section class="section-block">
+          <h2>1. Propósito y Naturaleza de Aréte</h2>
+          <p>
+            <strong>Aréte</strong> es una aplicación para Android 100% de Software Libre (GPL-3.0), descentralizada y local. Funciona comunicando teléfonos directamente entre sí a través de Bluetooth y Wi-Fi sin necesidad de conexión a internet ni servidores corporativos centrales.
+          </p>
+          <p>
+            Al instalar, descargar o utilizar Aréte, aceptas este Acuerdo de Licencia de Usuario Final (EULA) y te comprometes a convivir de forma responsable y solidaria con quienes te rodean.
+          </p>
+        </section>
+
+        <section class="section-block">
+          <h2>2. Restricción Estricta de Edad (+18 Años)</h2>
+          <p>
+            • La descarga y uso de Aréte está estrictamente prohibida a menores de 18 años.<br>
+            • Al crear tu perfil local o identidad en la aplicación, declaras bajo gravedad de juramento ser mayor de edad legal.<br>
+            • Toda cuenta sospechosa o denunciada que pertenezca a un menor de edad será eliminada y bloqueada de inmediato de la red.
+          </p>
+        </section>
+
+        <section class="section-block">
+          <h2>3. Responsabilidad en Encuentros Presenciales</h2>
+          <p>
+            Aréte facilita herramientas de descubrimiento de proximidad y salas de chat locales. <strong>Aréte y su equipo de desarrollo NO organizan, no avalan, no supervisan ni asumen responsabilidad alguna por citas, encuentros físicos o eventos presenciales entre usuarios.</strong>
+          </p>
+          <p>
+            Cualquier encuentro en el mundo real se realiza de manera enteramente voluntaria bajo el criterio y responsabilidad exclusiva de cada persona. Te aconsejamos siempre reunirte en lugares públicos concurridos, avisar a amistades de confianza y nunca transferir dinero ni contraseñas a personas recién conocidas.
+          </p>
+        </section>
+
+        <section class="section-block">
+          <h2>4. Contenido Compartido por los Usuarios (UGC)</h2>
+          <p>
+            Cada persona es la única y exclusiva responsable legal de los textos, fotos, cartas y opiniones que comparta en las salas públicas y el radar. Aréte protege tus mensajes directos mediante <strong>cifrado de extremo a extremo (E2EE v4)</strong>, por lo que nadie fuera de los participantes puede leerlos.
+          </p>
+        </section>
+
+        <section class="section-block">
+          <h2>5. Conductas y Contenidos Terminantemente Prohibidos</h2>
+          <p>Al unirte a la red, te comprometes a respetar a la comunidad y a <strong>NO</strong> emitir:</p>
+          <ul>
+            <li><strong>Discursos de odio:</strong> Ataques basados en género, raza, nacionalidad, orientación sexual o religión.</li>
+            <li><strong>Acoso y amenazas:</strong> Hostigamiento, difamación, extorsión o persecución de personas.</li>
+            <li><strong>Contenido pornográfico público:</strong> Compartir pornografía o imágenes íntimas sin consentimiento en áreas públicas.</li>
+            <li><strong>Actividades ilegales:</strong> Comercialización o apología de armas, drogas, sustancias ilícitas o fraude financiero.</li>
+          </ul>
+        </section>
+
+        <section class="section-block">
+          <h2>6. Protección Infantil Estricta (Tolerancia Cero CSAM/CSAE)</h2>
+          <p>
+            Prohibimos sin excepción todo material o acto de abuso, acoso o explotación sexual infantil. Cualquier infracción genera la expulsión irrevocable inmediata y la denuncia penal ante las autoridades competentes (Fiscalía General, Policía Judicial, Te Protejo y NCMEC).
+          </p>
+          <p>
+            Puedes reportar cualquier caso urgente a: <a href="mailto:politicaarete@gmail.com?subject=DENUNCIA%20CSAM" style="color:var(--primary);font-weight:700;">politicaarete@gmail.com</a> con el asunto <strong>[DENUNCIA CSAM]</strong>.
+          </p>
+        </section>
+
+        <section class="section-block">
+          <h2>7. Herramientas de Protección: Reporte y Bloqueo</h2>
+          <p>
+            Dispones en todo momento del botón de <strong>Reporte (🚩)</strong> y del botón de <strong>Bloqueo (🚫)</strong>. Al bloquear a un usuario, cesa al instante cualquier mensaje mutuo y ambos se vuelven invisibles en el radar de proximidad.
+          </p>
+          <p>
+            Además, puedes activar el <strong>Modo Invisible / Fantasma</strong> en Ajustes para no aparecer en el radar de nadie.
+          </p>
+        </section>
+
+        <section class="section-block">
+          <h2>8. Moderación Humana (< 24 Horas)</h2>
+          <p>
+            Todas las denuncias comunitarias son atendidas por moderadores en un plazo menor a 24 horas, priorizando de inmediato cualquier reporte que involucre riesgos para la seguridad de personas.
+          </p>
+        </section>
+
+        <section class="section-block">
+          <h2>9. Privacidad Local y Ley de Datos</h2>
+          <p>
+            Aréte no envía tus datos a servidores corporativos, no rastrea tus movimientos con fines comerciales ni vende publicidad. Cumple con la Ley 1581 de 2012 de Hábeas Data de Colombia y los más rigurosos estándares de soberanía digital. Eres libre de eliminar tus datos y cuenta en cualquier instante desde Ajustes.
+          </p>
+        </section>
+
+        <section class="section-block">
+          <h2>10. Licencia GPLv3 y Exención de Garantías</h2>
+          <p>
+            Aréte se distribuye como Software Libre bajo la licencia <strong>GNU General Public License v3.0</strong> «tal cual» (as is). Para más detalles, consulta el archivo <a href="../LICENSE" style="color:var(--primary);">LICENSE</a> del repositorio.
+          </p>
+        </section>
+
+      </article>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="wrap footer-inner">
+      <div>
+        <strong>Aréte</strong> — Software Libre bajo <a href="../LICENSE" style="color:var(--primary);">GNU GPL-3.0</a>
+        <br><small>Contacto de soporte y reportes: <a href="mailto:politicaarete@gmail.com" style="color:var(--primary);">politicaarete@gmail.com</a></small>
+      </div>
+      <div class="footer-links">
+        <a href="index.html">Inicio</a>
+        <a href="index.html#descarga">Descargar APK</a>
+        <a href="politica_privacidad.html">Privacidad</a>
+        <a href="https://github.com/Nehreah/Arete" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

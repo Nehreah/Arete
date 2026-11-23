@@ -13,6 +13,7 @@ Los documentos fundamentales que describen la ingeniería, protocolos y superfic
 | [**ARQUITECTURA.md**](ARQUITECTURA.md) | Arquitectura técnica 100% local, Clean Architecture, capas del sistema (Dominio puro, Datos y Presentación Compose), criptografía E2EE v4, protocolos BLE/GATT y Wi-Fi LAN. |
 | [**seguridad/MODELO_DE_AMENAZAS.md**](seguridad/MODELO_DE_AMENAZAS.md) | Análisis de superficie de ataque, vectores de amenaza en redes ad-hoc, firmas ECDSA, mitigaciones TOFU, replay protection y privacidad en radar. |
 | [**POLITICA_PRIVACIDAD.md**](POLITICA_PRIVACIDAD.md) | Política de privacidad integral: cero servidores centrales, cero telemetría, almacenamiento estrictamente local, conforme a directrices de F-Droid y software libre. |
+| [**EULA.md**](EULA.md) | Términos de Servicio, Acuerdo de Licencia de Usuario Final (EULA) y Normas Comunitarias (+18, tolerancia cero CSAM/acoso, moderación humana y descargo de responsabilidad). |
 
 ---
 

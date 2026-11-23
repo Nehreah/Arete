@@ -422,7 +422,7 @@ private fun PublicacionMuralCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(post.autorNombre.ifBlank { "Alguien de AntiRed" }, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text(post.autorNombre.ifBlank { "Alguien de Aréte" }, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     Text(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(post.creadaEn)), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                 }
                 // Botón reportar solo en publicaciones ajenas

@@ -1,169 +1,170 @@
 # Aréte
 
 <p align="center">
-  <img src="docs/assets/icono.png" width="120" alt="Aréte logo"/>
+  <img src="docs/assets/icono.png" width="130" alt="Aréte logo" style="border-radius: 28px;"/>
 </p>
 
 <p align="center">
-  <strong>Red social descentralizada y mesh — 100% local, sin servidores centrales, sin rastreo y sin censura.</strong>
+  <strong>La red social libre que funciona sin internet, sin saldo y sin servidores centrales.</strong><br>
+  Comunícate directamente de celular a celular con las personas a tu alrededor con total privacidad.
 </p>
 
 <p align="center">
-  <img alt="Android" src="https://img.shields.io/badge/Android-26%2B-green?logo=android"/>
-  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.4.0-blueviolet?logo=kotlin"/>
-  <img alt="Compose" src="https://img.shields.io/badge/Jetpack%20Compose-BOM%202025.12-blue?logo=jetpackcompose"/>
-  <img alt="License" src="https://img.shields.io/badge/License-GPL--3.0-blue.svg"/>
-  <img alt="F-Droid" src="https://img.shields.io/badge/F--Droid-Ready-brightgreen.svg"/>
+  <a href="https://nehreah.github.io/Arete/"><img alt="Sitio Web" src="https://img.shields.io/badge/Sitio%20Web-GitHub%20Pages-941b2c?style=for-the-badge&logo=githubpages&logoColor=white"/></a>
+  <a href="docs/arete.apk"><img alt="Descargar APK" src="https://img.shields.io/badge/Descargar-APK%20Directo-success?style=for-the-badge&logo=android&logoColor=white"/></a>
+  <a href="docs/EULA.md"><img alt="Normas y EULA" src="https://img.shields.io/badge/Normas-Adultos%20(%2B18)-orange?style=for-the-badge"/></a>
+  <a href="LICENSE"><img alt="Licencia GPL-3.0" src="https://img.shields.io/badge/Licencia-GPL--3.0-blue?style=for-the-badge"/></a>
 </p>
 
 ---
 
-## 📥 Descargar Aplicación (APK)
+## 📥 Descargar la Aplicación (Para tu Celular Android)
 
-Puedes descargar e instalar directamente la última versión de Aréte para dispositivos Android:
+¡No necesitas saber nada de programación para probar Aréte! Puedes descargar el archivo de instalación (`.apk`) directamente a tu teléfono:
 
 <p align="center">
-  <a href="https://github.com/Nehreah/AntiRed/releases/latest">
-    <img src="https://img.shields.io/badge/Descargar-Última%20Versión%20Release-success?style=for-the-badge&logo=android&logoColor=white" alt="Descargar Release"/>
-  </a>
-  <a href="https://f-droid.org">
-    <img src="https://img.shields.io/badge/F--Droid-Disponible%20Pronto-008577?style=for-the-badge&logo=fdroid&logoColor=white" alt="F-Droid"/>
-  </a>
-  <a href="https://github.com/Nehreah/AntiRed">
-    <img src="https://img.shields.io/badge/Código-Fuente%20GPL--3.0-crimson?style=for-the-badge&logo=git" alt="Código Fuente"/>
+  <a href="docs/arete.apk">
+    <img src="https://img.shields.io/badge/📥%20DESCARGAR%20APK%20DIRECTO-(arete.apk)-2ea44f?style=for-the-badge&logo=android&logoColor=white" alt="Descargar arete.apk"/>
   </a>
 </p>
 
-| Parámetro | Detalle |
+> 🔗 **Opciones de descarga directa:**
+> - 📦 **[Descarga directa desde este repositorio (`docs/arete.apk`)](docs/arete.apk)**
+> - 🌐 **[Descarga desde la web de GitHub Pages](https://nehreah.github.io/Arete/arete.apk)**
+> - ⚡ **[Enlace directo crudo (Raw)](https://github.com/Nehreah/Arete/raw/main/docs/arete.apk)**
+> - 🌍 **[Visitar la página web del proyecto](https://nehreah.github.io/Arete/)**
+
+| Característica | Detalle |
 |---|---|
-| **Distribución** | GitHub Releases (APK firmado) / F-Droid (código fuente) |
-| **Versión** | `1.0.0` (Genesis - Arquitectura 100% Local / Mesh P2P) |
-| **Compatibilidad** | Android 8.0 (API 26) o superior |
-| **Servicios externos** | 0% (Sin Google Play Services, sin microG, 100% soberana) |
-| **Licencia** | GNU General Public License v3.0 (GPL-3.0) |
-
-### 📲 Instalación rápida:
-1. Dirígete a [**GitHub Releases**](https://github.com/Nehreah/AntiRed/releases/latest) o al repositorio de **F-Droid**.
-2. Descarga el paquete de versión firmado (`.apk`).
-3. Si instalas directamente desde el navegador, habilita **«Instalar aplicaciones de fuentes desconocidas»**.
-4. Abre el archivo descargado y presiona **Instalar**. ¡Listo! Ya puedes comunicarte de forma local y segura.
+| **Archivo de descarga** | `arete.apk` (listo para instalar) |
+| **Versión** | `1.0.0` (Génesis — 100% Local / Red de Malla P2P) |
+| **Requisito del teléfono** | Cualquier celular con Android 8.0 o superior |
+| **Costo** | 100% Gratis, sin pagos, sin suscripciones y sin anuncios |
+| **Conexión requerida** | **Ninguna**. Funciona sin internet, sin wifi y sin saldo móvil |
+| **Edad requerida** | Exclusiva para mayores de 18 años (+18) |
 
 ---
 
-## El nombre: Aréte, una idea colombianizada
+### 📲 Cómo instalar Aréte en 3 pasos sencillos:
 
-**Aréte** surge de un juego de palabras que une dos ideas: la **A** de *anti* y *rete*, palabra latina que significa «red». Esta combinación da forma a una identidad que, además, reinterpreta y colombianiza creativamente *areté* (ἀρετή), concepto de la filosofía griega asociado con la virtud, la excelencia y el desarrollo pleno de las capacidades humanas. Ambas ideas convergen en el espíritu de la aplicación.
-
-Así, el nombre conecta su identidad con su propósito: cuestionar las formas convencionales de entender las redes y proponer una manera distinta de relacionarnos, crecer y desarrollar nuestro potencial.
-
-La intención no es rechazar la conexión entre personas, sino promover una forma de conectarse más consciente, segura y virtuosa: una identidad cercana, propia y con propósito.
-
-Pero esta visión va más allá del nombre. Aréte nace también de una pregunta: ¿y si las redes sociales hubieran tomado un camino equivocado? ¿Y si, en su afán por mantenernos conectados, hubieran terminado convirtiendo nuestra atención, nuestras emociones y nuestros mecanismos de recompensa en recursos que explotar?
-
-Frente a los sistemas diseñados para prolongar indefinidamente el tiempo de permanencia, alimentar el desplazamiento infinito (*infinite scroll*) y convertir cada interacción en un estímulo para la siguiente, **Aréte propone dar dos pasos atrás para recuperar aquello que alguna vez hicimos bien**. Porque avanzar no siempre significa añadir más funciones, más contenido o más estímulos. A veces, avanzar es reconocer que nos hemos equivocado y atrevernos a pulsar *Ctrl + Z*.
-
-No se trata de regresar al pasado por nostalgia, sino de rescatar lo valioso de aquellos primeros espacios digitales: cuando el feed era, ante todo, un lugar para saber de nuestros amigos, compartir lo que vivíamos y mantenernos cerca, incluso a la distancia. Antes de que la conexión se confundiera con la exposición constante y de que estar al tanto de todo se convirtiera en una obligación interminable.
-
-Por eso, **Aréte recupera el feed centrado en tus amigos y lo extiende a tu localidad**. Un espacio donde las personas que forman parte de tu vida y lo que sucede a tu alrededor tengan prioridad sobre el contenido diseñado para capturar tu atención. Una red que favorezca los vínculos cercanos, la comunidad y el descubrimiento de lo que ocurre en tu entorno, sin fomentar una interconexión innecesaria ni convertir cada instante libre en una oportunidad para retenerte frente a una pantalla.
-
-La tecnología debería acercarnos a la vida, no sustituirla. Por eso, Aréte no aspira a capturar una atención infinita, sino a ofrecer un medio útil para conectar con los demás, descubrir oportunidades, participar en la comunidad y, finalmente, volver al mundo que existe más allá de la aplicación.
-
-**Porque una buena red social no debería necesitar todo tu tiempo para demostrar su valor. Debería ayudarte a aprovechar mejor el tiempo que tienes.**
-
-> De la virtud griega a una red social con propósito: conectar mejor también es una forma de virtud.
+1. **Descarga el archivo:** Pulsa en el enlace verde de arriba **[Descargar arete.apk](docs/arete.apk)** desde el navegador de tu celular.
+2. **Acepta la advertencia:** Android te mostrará el mensaje habitual: *«Este tipo de archivo puede ser dañino»*. No te preocupes: es el aviso automático de Android para cualquier aplicación que se descargue fuera de Google Play. Elige **«Descargar de todos modos»**.
+3. **Instala y abre:** Toca el archivo descargado para abrirlo. Si tu teléfono te pide permiso para *«Instalar aplicaciones de fuentes desconocidas»*, actívalo en los ajustes de pantalla. Presiona **Instalar**, ¡y listo! Abre Aréte y empieza a explorar.
 
 ---
 
-## ¿Qué es Aréte?
+## ¿Qué es Aréte? (Explicado para Todos)
 
-**Aréte** es una aplicación Android de mensajería y red social táctica diseñada para operar **100% de forma local y sin internet**, mediante redes ad-hoc peer-to-peer (Bluetooth Low Energy, Bluetooth Classic RFCOMM y Wi-Fi LAN/Direct).
+Imagina que estás en un concierto, en una manifestación, en el metro, en la universidad, en el campo o en medio de un apagón y **se cae la señal de tu celular** o te quedas sin saldo.
 
-> Cuando la infraestructura de telecomunicaciones colapsa —apagones, censura, catástrofes o zonas remotas— Aréte mantiene a las personas comunicadas en la malla, sin depender de servidores centrales ni servicios externos.
+Las redes sociales tradicionales (como WhatsApp, Instagram o X) dejan de funcionar por completo porque dependen de computadores gigantes (servidores) al otro lado del mundo.
 
----
+**Aréte no necesita nada de eso.**
 
-## Documentación Técnica
+Tu teléfono ya tiene antenas potentes para Bluetooth y Wi-Fi. Aréte aprovecha esas antenas para que los celulares se comuniquen **directamente entre sí por el aire**:
 
-Para profundizar en el diseño e implementación del sistema, consulta los documentos especializados en el directorio [`docs/`](docs/):
+```
+[ Tu Celular ]  ────── Bluetooth / Wi-Fi ──────>  [ Celular de tu Amigo ]
+       │                                                    ▲
+       │  (Si está lejos, pasa por vecinos intermedios)    │
+       └──────────> [ Celular Vecino ] ─────────────────────┘
+```
 
-- 📚 [**Índice General de Documentación**](docs/INDICE.md) — Mapa y catálogo completo de la documentación del proyecto.
-- 🏛️ [**Arquitectura Técnica del Sistema**](docs/ARQUITECTURA.md) — Capas, contratos, protocolos de transporte y criptografía E2EE v4.
-- 🗺️ [**Guía Funcional del Sistema**](docs/GUIA_FUNCIONAL.md) — Salas de chat, regiones, mapas libres, eventos, cartas y Michi.
-- 🔒 [**Política de Privacidad**](docs/POLITICA_PRIVACIDAD.md) — Almacenamiento 100% local, cero telemetría y soberanía de datos.
-- 🤝 [**Guía para Contribuidores**](docs/CONTRIBUTING.md) — Normas de contribución para la comunidad de software libre.
-- 📝 [**Historial de Versiones (Changelog)**](docs/CHANGELOG.md) — Registro de versiones y cambios del proyecto.
-- 🛡️ [**Modelo de Amenazas**](docs/seguridad/MODELO_DE_AMENAZAS.md) — Superficie de ataque, mitigaciones activas y capas de seguridad.
-- 🎨 [**Sistema de Diseño Visual**](docs/diseno/SISTEMA_DISENO.md) — Guía de tokens de diseño M3, paleta de colores y componentes tácticos.
-- 🐾 [**Michi y Pixel Art**](docs/diseno/SISTEMA_MICHI_PIXEL_ART.md) — Especificación técnica de la mascota virtual y ambientes compartidos.
-
----
-
-## Características Principales
-
-### 🔵 Conectividad Mesh y Red Local (100% Offline)
-- **Bluetooth Classic (RFCOMM)**: Enlaces punto a punto dedicados con supervisión de ciclo de vida (`SupervisorJob`) y reconexión exponencial.
-- **BLE (Bluetooth Low Energy)**: Descubrimiento adaptativo de vecinos y emisión de presencia con control estricto de MTU.
-- **GATT Framer**: Protocolo propio de fragmentación y reensamblado seguro de tramas (hasta 64 KB) con limpieza automática de sesiones y protección contra tramas duplicadas.
-- **Wi-Fi LAN Transport**: Difusión en red de área local con `ThreadPoolExecutor` acotado, timeouts estrictos en sockets y sincronización robusta.
-- **Enrutamiento Mesh**: Algoritmo de propagación con TTL configurable (máximo 7 saltos) y caché de deduplicación de IDs de mensaje.
-
-### 🔒 Privacidad y Criptografía Extremo a Extremo (E2EE)
-- **Cifrado E2EE v4**: Curvas Elípticas `ECDH` (P-256 / secp256r1) + `HKDF-SHA256` + `AES-256-GCM`. Formato `ENC:v4:<iv_b64>:<ciphertext_b64>` con **AAD contextual** `remitente|destinatario|chatId`.
-- **Autenticidad en malla local**: Firma digital ECDSA secp256k1 en cada paquete y verificación TOFU (Trust On First Use) descentralizada.
-- **Zero-Storage de Claves Privadas**: Claves resguardadas en el almacén de hardware de Android (`EncryptedSharedPreferences` / Android Keystore).
-- **Sin Identidad Central**: Sesión local autónoma (`GestorSesionLocal`) que garantiza funcionamiento e identidad táctica sin necesidad de cuentas ni servidores externos.
-
-### 🐱 Michi, la mascota 100% local
-- **Sin IA externa ni servidores**: la mascota vive exclusivamente en el teléfono local; sin consumo de datos ni dependencias de nube.
-- **Interacciones táctiles y en malla**: envía chispas y medicinas a las mascotas de tus pares cercanos a través del radar.
-
-### 💬 Salas y Mensajería Unificada
-- **Sala General en Malla**: Canal público general fijado al inicio (`SALA GENERAL #RADAR`).
-- **Cartas y Mensajería Directa**: Mensajes privados directos e intercambio de cartas entre amistades y perfiles públicos.
-- **Llamadas y Audio PTT**: Señalización de llamadas vía malla P2P y audio en tiempo real.
-
-### 🗺️ Radar Táctico y Asistente de Eventos
-- **GPS Nativo Respetuoso con la Privacidad**: Posicionamiento mediante `LocationManager` nativo de Android (sin Google Play Services / microG necesario).
-- **Ciclo Día/Noche Solarpunk**: Adaptación ambiental del mapa según el horario solar local.
+1. **De celular a celular (Sin gastar tus datos):** Si tú y tus amigos están cerca, sus teléfonos conversan directamente. No consumes tu plan de datos móviles ni necesitas tener Wi-Fi con internet.
+2. **Como pasarse una cartica en el colegio:** Si la persona a la que le escribes está a varias cuadras de distancia, los teléfonos de otras personas con Aréte que estén en el camino ayudan a transportar el mensaje de mano en mano hasta entregarlo.
+3. **Privacidad absoluta:** ¡Nadie en el camino puede ver lo que dice el mensaje! Tus conversaciones privadas van selladas con **cifrado matemático de punta a punta**; solo tú y la persona que recibe la carta pueden leerla.
+4. **Tus datos son solo tuyos:** No te pedimos tu número telefónico, ni tu correo, ni fotos de tus documentos. No hay empresas guardando tus datos para venderte anuncios. Todo vive seguro en la memoria de tu propio teléfono.
 
 ---
 
-## Estructura del Proyecto
+## ✨ Características que te van a encantar
 
+- 💬 **Salas Públicas y Mensajes Directos:** Participa en la sala general de tu zona (`#RADAR`) para enterarte de lo que pasa cerca, o conversa en privado con tus amistades.
+- 🐱 **Michi, tu mascota virtual:** Un fiel compañero en pixel art que vive en tu celular. No gasta batería con inteligencia artificial en la nube: vive dentro de tu móvil. Puedes alimentarlo, acariciarlo, mandarle cariño a los michis de la gente a tu alrededor y divertirte con el minijuego **MichiSnake**.
+- 📜 **Cartas y Biblioteca Local:** Recupera el encanto de escribir cartas con calma, cuentos o pensamientos que se comparten suavemente con quienes caminan cerca de ti.
+- 🗺️ **Radar Táctico y Mapas Libres:** Encuentra eventos comunitarios o personas cercanas en un mapa interactivo libre (OpenStreetMap), sin ser rastreado por corporaciones.
+- 🔒 **Modo Fantasma / Invisible:** Tú decides cuándo aparecer en el radar y cuándo ser invisible con un solo toque.
+
+---
+
+## El Nombre y Nuestra Filosofía: Aréte
+
+**Aréte** nace de un juego de palabras: une la **A** de *anti* y *rete* (palabra latina que significa «red»). Al mismo tiempo, reinterpreta y colombianiza creativamente la palabra griega *areté* (ἀρετή), que representa la virtud, la excelencia y el florecimiento de lo mejor de cada ser humano.
+
+Aréte nace de una pregunta muy sencilla:  
+*¿Y si las redes sociales hubieran tomado un camino equivocado?*  
+*¿Y si, en su afán por mantenernos pegados a la pantalla, convirtieron nuestra atención, nuestras emociones y nuestro tiempo en un negocio?*
+
+Frente al desplazamiento infinito (*infinite scroll*) y los algoritmos diseñados para engancharte, **Aréte propone dar un paso atrás**: volver al feed centrado en las personas que tienes cerca, en tus amigos de verdad y en tu comunidad local.
+
+> Una buena red social no debería exigir todo tu tiempo para demostrar su valor. Debería ayudarte a disfrutar mejor de la vida real.
+
+---
+
+## 📜 Reglas de Convivencia, EULA y Privacidad
+
+Para garantizar que Aréte sea un espacio seguro, sano y confiable:
+
+- 🔞 **Exclusiva para mayores de 18 años:** Por seguridad y responsabilidad comunitaria, el acceso está reservado estrictamente para adultos.
+- 🛑 **Tolerancia cero ante el acoso y el odio:** No se tolera ninguna forma de violencia, discriminación, extorsión ni abuso infantil (CSAM). Quien infrinja estas normas es bloqueado de inmediato y reportado a las autoridades judiciales.
+- 🚩 **Herramientas de reporte y bloqueo:** Si alguien te molesta, puedes bloquearlo con un toque (🚫) y ambos desaparecerán del radar de forma definitiva.
+
+📄 **Documentos completos:**
+- [**📜 Términos de Servicio, EULA y Normas Comunitarias**](docs/EULA.md) · [Versión Web](https://nehreah.github.io/Arete/eula.html)
+- [**🔒 Política de Privacidad Integral**](docs/POLITICA_PRIVACIDAD.md) · [Versión Web](https://nehreah.github.io/Arete/politica_privacidad.html)
+- 📧 **Contacto de soporte y reportes:** `politicaarete@gmail.com`
+
+---
+
+## 📚 Documentación del Proyecto
+
+Para quienes deseen explorar en detalle el funcionamiento técnico y el diseño del sistema:
+
+- 🗺️ [**Índice General de Documentación**](docs/INDICE.md) — Directorio maestro de todos los documentos.
+- 🏛️ [**Arquitectura Técnica del Sistema**](docs/ARQUITECTURA.md) — Funcionamiento de los protocolos Bluetooth, Wi-Fi LAN y cifrado E2EE v4.
+- 🧭 [**Guía Funcional del Sistema**](docs/GUIA_FUNCIONAL.md) — Explicación detallada de salas, radar, cartas y Michi.
+- 🎨 [**Sistema de Diseño Visual**](docs/diseno/SISTEMA_DISENO.md) — Paleta de colores, tokens tácticos e interfaz visual.
+- 🐱 [**Michi y Pixel Art**](docs/diseno/SISTEMA_MICHI_PIXEL_ART.md) — Especificación de los sprites y animaciones de la mascota.
+- 🖼️ [**Licencia de Recursos Gráficos**](docs/LICENCIA_RECURSOS.md) — Atribución de imágenes, fondos e ilustraciones (CC-BY-4.0 / GPL-3.0).
+- 🤝 [**Guía para Contribuidores**](docs/CONTRIBUTING.md) — Cómo participar y enviar mejoras al proyecto.
+- 📝 [**Historial de Cambios (Changelog)**](docs/CHANGELOG.md) — Registro de versiones.
+
+---
+
+<details>
+<summary><strong>🛠️ Información para Desarrolladores y Compilación desde Código Fuente (Clic para desplegar)</strong></summary>
+
+<br>
+
+### Requisitos de Desarrollo
+- **JDK 21** (OpenJDK o Eclipse Adoptium).
+- **Android SDK** con `compileSdk = 37`, `minSdk = 26`.
+- Dispositivo Android con Bluetooth BLE y Wi-Fi para pruebas en red de malla.
+
+### Estructura de Carpetas
 ```
 Aréte/
-├── app/
-│   ├── build.gradle.kts        # Configuración de compilación sin dependencias privativas
-│   └── src/
-│       ├── main/java/com/renea/arete_social/
-│       │   ├── core/           # ContenedorApp (Inyección de dependencias manual)
-│       │   ├── data/           # ModuloLocal, SQLite/Room, GATT, Wi-Fi LAN, BLE, Cifrado
-│       │   ├── domain/         # Modelos puros, interfaces y casos de uso
-│       │   ├── feature/        # ViewModels (Salas, Perfil, Radar, Cartas, Llamadas)
-│       │   └── gui/            # Interfaz de usuario Jetpack Compose
-│       └── test/java/com/renea/arete_social/  # Suite completa de pruebas unitarias
-├── docs/                       # Documentación técnica consolidada
-├── fastlane/                   # Metadatos para F-Droid (es-ES, en-US)
-└── gradle/                     # Wrapper y catálogo de dependencias (libs.versions.toml)
+├── app/                  # Código fuente de la app Android (Jetpack Compose, Kotlin)
+│   ├── src/main/java/com/renea/arete_social/
+│   │   ├── core/         # Contenedor de dependencias e inyección
+│   │   ├── data/         # Protocolos GATT, Wi-Fi LAN, SQLite Room, Cifrado E2EE
+│   │   ├── domain/       # Modelos de datos puros y lógica de negocio
+│   │   ├── feature/      # ViewModels (Salas, Radar, Michi, Cartas, Perfil)
+│   │   └── gui/          # Interfaz de usuario reactiva en Jetpack Compose
+├── docs/                 # Documentación técnica, web de GitHub Pages y APK directo
+├── fastlane/             # Metadatos para tiendas libres (F-Droid)
+└── gradle/               # Wrapper y catálogo de dependencias
 ```
 
----
-
-## Compilación y Ejecución
-
-### Requisitos
-- **JDK 21** (OpenJDK o Eclipse Adoptium recomendado).
-- **Android SDK** con `compileSdk = 37`, `minSdk = 26`.
-
-### Pasos
+### Comandos de Compilación
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone https://github.com/Nehreah/AntiRed.git
-   cd AntiRed
+   git clone https://github.com/Nehreah/Arete.git
+   cd Arete
    ```
 
-2. **Ejecutar Suite de Pruebas Unitarias:**
+2. **Ejecutar Pruebas Unitarias:**
    ```bash
    ./gradlew testDebugUnitTest
    ```
@@ -174,17 +175,17 @@ Aréte/
    ```
    El APK compilado se genera en `app/build/outputs/apk/debug/app-debug.apk`.
 
-4. **Compilar para Release (F-Droid):**
+4. **Compilar para Producción / F-Droid:**
    ```bash
    ./gradlew assembleRelease
    ```
 
+</details>
+
 ---
 
-## Licencia y Software Libre
+## 🕊️ Licencia de Software Libre
 
-Este proyecto es **Software Libre** distribuido bajo los términos de la **[GNU General Public License v3.0](LICENSE)** (GPL-3.0).
+Este proyecto es **100% Software Libre** distribuido bajo los términos de la **[GNU General Public License v3.0 (GPL-3.0)](LICENSE)**.
 
-Los recursos gráficos, ilustraciones y fondos se distribuyen bajo licencia libre **[Creative Commons Atribución 4.0 Internacional (CC-BY-4.0)](docs/LICENCIA_RECURSOS.md)** y GPL-3.0. Para más detalles sobre autoría y procedencia de activos, consulta **[docs/LICENCIA_RECURSOS.md](docs/LICENCIA_RECURSOS.md)**.
-
-Eres libre de usar, estudiar, modificar y redistribuir este programa conforme a los términos de la licencia GPLv3.
+Eres libre de usarlo, estudiarlo, compartirlo y mejorarlo.

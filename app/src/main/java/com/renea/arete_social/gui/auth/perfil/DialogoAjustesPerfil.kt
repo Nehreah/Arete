@@ -235,7 +235,7 @@ internal fun DialogoAjustesPerfil(
                     onClick = {
                         val intent = Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse("https://github.com/Nehreah/AntiRed/blob/main/docs/POLITICA_PRIVACIDAD.md")
+                            Uri.parse("https://github.com/Nehreah/Arete/blob/main/docs/POLITICA_PRIVACIDAD.md")
                         )
                         runCatching { context.startActivity(intent) }
                     },

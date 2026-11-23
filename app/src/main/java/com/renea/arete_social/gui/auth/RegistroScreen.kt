@@ -178,7 +178,7 @@ fun RegistroScreen(
             onClick = {
                 val intent = android.content.Intent(
                     android.content.Intent.ACTION_VIEW,
-                    android.net.Uri.parse("https://github.com/Nehreah/AntiRed/blob/main/docs/POLITICA_PRIVACIDAD.md")
+                    android.net.Uri.parse("https://github.com/Nehreah/Arete/blob/main/docs/POLITICA_PRIVACIDAD.md")
                 )
                 runCatching { context.startActivity(intent) }
             }

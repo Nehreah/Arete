@@ -1,5 +1,6 @@
 # Built application files
 *.apk
+!docs/arete.apk
 *.aar
 *.ap_
 *.aab
