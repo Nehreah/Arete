@@ -1,0 +1,6 @@
+Initial release of Aréte:
+- Sovereign, decentralized local social network (Bluetooth LE & Wi-Fi Direct mesh).
+- End-to-end encryption (E2EE) with TOFU cryptographic verification.
+- Digital letters, proximity radar, and public/private profiles.
+- OpenStreetMap integration and native GPS positioning without tracking.
+- 100% free of trackers and proprietary services (GPLv3).

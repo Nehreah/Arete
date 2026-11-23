@@ -1,0 +1,317 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class Usuario {
+  - id: String
+  - nombre: String
+  - foto: String
+  - estadoVisibilidad: Visibilidad
+  - ubicacion: Ubicacion
+}
+
+enum Visibilidad {
+  VISIBLE
+  APROXIMADA
+  INVISIBLE
+}
+
+class Ubicacion {
+  - latitud: Double
+  - longitud: Double
+  - timestamp: Long
+}
+
+class Comunidad {
+  - id: String
+  - nombre: String
+  - descripcion: String
+  - tipo: String
+}
+
+class Grupo {
+  - id: String
+  - nombre: String
+  - fechaInicio: Long
+  - fechaExpiracion: Long
+}
+
+class Lugar {
+  - id: String
+  - nombre: String
+  - descripcion: String
+  - ubicacion: Ubicacion
+}
+
+class Evento {
+  - id: String
+  - nombre: String
+  - descripcion: String
+  - fecha: Long
+}
+
+class Chat {
+  - id: String
+  - tipo: TipoChat
+}
+
+enum TipoChat {
+  USUARIO
+  LUGAR
+  EVENTO
+  GRUPO
+  REGIONAL
+  GENERAL
+}
+
+class Mensaje {
+  - id: String
+  - contenido: String
+  - timestamp: Long
+}
+
+class Dispositivo {
+  - id: String
+  - nombre: String
+  - señal: Int
+  - ultimaConexion: Long
+}
+
+interface DetectorProximidad {
+  + descubrir(): List<Dispositivo>
+  + detener(): Unit
+}
+
+class ProximityManagerGps implements DetectorProximidad
+class ProximityManagerBle implements DetectorProximidad
+
+class PeerConnection {
+  + conectar(): Unit
+  + desconectar(): Unit
+  + enviar(m: Mensaje): Unit
+  + recibir(): Mensaje
+}
+
+class MessageRouter {
+  + enrutar(m: Mensaje): Unit
+  + reenviar(m: Mensaje): Unit
+}
+
+' --- Relaciones principales ---
+Usuario "1" -- "1" Ubicacion
+Usuario "1" -- "0..*" Evento : crea >
+Usuario "0..*" -- "0..*" Evento : participa >
+Usuario "0..*" -- "0..*" Comunidad : miembro de >
+Usuario "0..*" -- "0..*" Grupo : miembro de >
+
+Comunidad "1" -- "0..*" Grupo : puede originar >
+Comunidad "1" -- "0..*" Evento : agrupa (opcional) >
+
+Evento "0..*" -- "1" Lugar : ocurre en >
+Lugar "1" -- "1" Chat : tiene >
+Evento "1" -- "1" Chat : tiene >
+Grupo "1" -- "1" Chat : tiene >
+
+Chat "1" -- "0..*" Mensaje : contiene >
+Mensaje "0..*" -- "1" Usuario : remitente >
+
+DetectorProximidad ..> Dispositivo : descubre >
+PeerConnection --> Dispositivo : usa >
+MessageRouter --> PeerConnection : usa >
+MessageRouter ..> Mensaje : enruta >
+
+' ============================================================================
+' --- Chats regionales, descubrimiento de lugares y eventos, pases y Modo Súper ---
+' Las salas regionales, de lugar y de evento se derivan en el
+' teléfono de forma autónoma. Lo descubierto reside en SQLite/Room local.
+' ============================================================================
+
+class Region {
+  - id: String
+  - nombre: String
+  - ubicacion: Ubicacion
+  - chatId: String
+}
+
+class ZonaRegional {
+  - radioMaxMetros: Double = 100000
+  + contiene(p: Ubicacion): Boolean
+}
+
+class SelectorRegional {
+  + masCercana(p: Ubicacion): Region
+  + elegir(p: Ubicacion, actual: Region): Region
+  + regionDeContenido(p: Ubicacion): Region
+  + perteneceA(r: Region, p: Ubicacion): Boolean
+}
+
+enum TipoEntidadMapa {
+  LUGAR
+  EVENTO
+}
+
+enum OrigenVisibilidad {
+  CERCA
+  RECIENTE
+  PASE
+  SUPER
+}
+
+class EntidadSnapshot {
+  - tipo: TipoEntidadMapa
+  - id: String
+  - nombre: String
+  - latitud: Double
+  - longitud: Double
+  - chatId: String
+  - fechaEvento: Long
+  - visibilidad: VisibilidadEvento
+}
+
+class Descubrimiento {
+  - snapshot: EntidadSnapshot
+  - ultimoVistoCerca: Long
+  - paseRecibidoEn: Long
+  - paseEmisorId: String
+}
+
+class EstadoDescubrimiento <<sealed>> {
+  NoDescubierto
+  Cerca
+  Reciente(venceEn)
+  PorPase(venceEn)
+}
+
+class PoliticaDescubrimiento {
+  + radioMetros: Double = 500
+  + duracionMillis: Long = 24 h
+  + estadoDe(d: Descubrimiento, distancia: Double): EstadoDescubrimiento
+  + puedeCompartir(e: EstadoDescubrimiento): Boolean
+  + puedeAceptarPase(e: EstadoDescubrimiento): Boolean
+}
+
+interface Reloj {
+  + ahora(): Long
+}
+
+interface AlmacenDescubrimientos {
+  + cargar(usuarioId): List<Descubrimiento>
+  + guardar(usuarioId, d: Descubrimiento): Unit
+  + eliminar(usuarioId, clave): Unit
+}
+class GestorDescubrimientosLocal implements AlmacenDescubrimientos
+
+class ServicioDescubrimiento {
+  + visibles: StateFlow<List<ElementoVisible>>
+  + registrarCercanos(ubicacion, lugares, eventos): Unit
+  + refrescar(): Unit
+  + compartiblesPriorizados(): List<ElementoVisible>
+  + registrar(d: Descubrimiento): Boolean
+  + olvidar(clave): Unit
+}
+
+class ServicioRegionActual {
+  + estado: StateFlow<Estado>
+  + actualizar(p: Ubicacion): Unit
+  + definirRegiones(rs: List<Region>): Unit
+}
+
+class VisionRegional {
+  - region: Region
+  - lugares: List<EntidadSnapshot>
+  - eventos: List<EntidadSnapshot>
+}
+
+class ServicioVisionRegional {
+  + vision: StateFlow<VisionRegional>
+  + iniciar(): Unit
+  + detener(): Unit
+}
+
+class PaseDescubrimiento {
+  - id: String
+  - emisorId: String
+  - receptorId: String
+  - emitidoEn: Long
+  - entidades: List<EntidadSnapshot> (hasta 20)
+  - firma: String
+  - clavePublicaEmisor: String
+  + datosFirmados(): String
+}
+
+class ServicioPases {
+  + crear(miId, receptorId, yaOfrecidos): PaseDescubrimiento
+  + aceptar(pase, remitente, miId): ResultadoPase
+  + verificarPendientes(): Int
+}
+
+interface VerificadorEntidades {
+  + existe(s: EntidadSnapshot): Boolean
+}
+
+class GestorPasesBle {
+  + iniciar(): Unit
+  + detener(): Unit
+}
+note right of GestorPasesBle
+  Canal propio "pase-descubrimiento", TTL 1.
+  Ofrece a vecinos directos (IDENT con 0 saltos).
+end note
+
+class PetEntity {
+  - hunger / happiness / hygiene / health / energy: Int
+  - superDesdeMillis: Long (v6)
+  - schemaVersion: Int = 6
+}
+
+class ModoSuper <<funciones puras>> {
+  + cumpleMetaSuper(): Boolean
+  + modoSuperActivo(now): Boolean
+  + milisHastaPoderActivar(now): Long
+  + evaluarModoSuper(now): PetEntity
+  + progresoSuper(now): ProgresoSuper
+  + momentoDespertar(now): Long
+}
+note right of ModoSuper
+  Meta: comida, ánimo, higiene y salud = 100
+  y energía >= 97. Dura 3 h. Enfriamiento 20 h.
+end note
+
+class ProgresoSuper {
+  - requisitos: List<RequisitoSuper>
+  - activo: Boolean
+  - pista: String
+}
+
+class ServicioModoSuper {
+  + estado: StateFlow<Estado>
+  + iniciar(usuarioId): Unit
+}
+
+Lugar ..> EntidadSnapshot : se copia en >
+Evento ..> EntidadSnapshot : se copia en >
+Descubrimiento "0..*" -- "1" EntidadSnapshot
+PoliticaDescubrimiento ..> EstadoDescubrimiento : calcula >
+PoliticaDescubrimiento ..> Reloj
+ServicioDescubrimiento --> PoliticaDescubrimiento
+ServicioDescubrimiento --> AlmacenDescubrimientos
+ServicioDescubrimiento ..> OrigenVisibilidad : expone >
+ServicioRegionActual --> SelectorRegional
+SelectorRegional "1" --> "0..*" Region
+ZonaRegional "1" --> "1" Region
+Region "1" -- "1" Chat : tiene (REGIONAL) >
+ServicioVisionRegional --> ServicioModoSuper : solo con Súper activo >
+ServicioVisionRegional --> ServicioRegionActual
+ServicioVisionRegional ..> VisionRegional : produce >
+VisionRegional "1" --> "1" ZonaRegional
+ServicioModoSuper --> PetEntity : observa >
+PetEntity ..> ModoSuper : reglas >
+ModoSuper ..> ProgresoSuper
+PaseDescubrimiento "1" *-- "1..20" EntidadSnapshot
+ServicioPases --> ServicioDescubrimiento
+ServicioPases --> PoliticaDescubrimiento
+ServicioPases ..> PaseDescubrimiento : crea y valida >
+ServicioPases --> VerificadorEntidades
+GestorPasesBle --> ServicioPases
+GestorPasesBle --> MessageRouter : usa >
+
+@enduml

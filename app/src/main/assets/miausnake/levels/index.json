@@ -1,0 +1,25 @@
+{
+ "format": 1,
+ "levels": [
+  "maze_01.json",
+  "maze_02.json",
+  "maze_03.json",
+  "maze_04.json",
+  "maze_05.json",
+  "maze_06.json",
+  "maze_07.json",
+  "maze_08.json",
+  "maze_09.json",
+  "maze_10.json",
+  "maze_11.json",
+  "maze_12.json",
+  "maze_13.json",
+  "maze_14.json",
+  "maze_15.json",
+  "maze_16.json",
+  "maze_17.json",
+  "maze_18.json",
+  "maze_19.json",
+  "maze_20.json"
+ ]
+}

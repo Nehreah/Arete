@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "description": "Vectores de prueba neutrales para serialización de OperationEnvelope en Aréte v1",
+  "domain_separator": "arete/op/v1",
+  "hash_algorithm": "SHA-256",
+  "curve": "secp256r1",
+  "vectors": [
+    {
+      "name": "genesis_operation_sample",
+      "envelope": {
+        "version": 1,
+        "operationType": 1,
+        "communityId": "0000000000000000000000000000000000000000000000000000000000000000",
+        "authorIkHex": "04b505969e20ebda88a91c6e1db0bf9bf3d6f1bfb8b3dbefd16a6d654c6a6f1c42f025e1bb3543d3b76a6b5790b411d51a6603a11df677d2bd57cf2df8ab33a552",
+        "deviceId": "550e8400-e29b-41d4-a716-446655440000",
+        "deviceEpoch": 1,
+        "deviceSeq": 1,
+        "prevOpHash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "ownerHeadSeq": 0,
+        "ownerHeadHash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "epochId": "0000000000000000000000000000000000000000000000000000000000000000",
+        "timestamp": 1794769200000,
+        "bodyHex": "7b226e616d65223a22436f6d756e6964616420496e696369616c227d"
+      },
+      "expectedOpTypeHex": "0001",
+      "expectedVersionHex": "0001"
+    }
+  ]
+}

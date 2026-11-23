@@ -1,0 +1,22 @@
+<!--
+    Placeholder temporal para PetSpriteSystem.kt (Plan de Fidelidad Visual v2, sección 6).
+    Sustituir por los 19 frames reales de Mimi en cuanto existan — ver el TODO(arte) en
+    spriteFrameToDrawableRes() dentro de PetSpriteSystem.kt para la lista exacta de nombres.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <path
+        android:pathData="M8,8h80v80h-80z"
+        android:fillColor="#0E1F16" />
+    <path
+        android:pathData="M48,20 C60,20 68,30 68,42 C68,56 58,68 48,68 C38,68 28,56 28,42 C28,30 36,20 48,20 Z"
+        android:strokeColor="#4ADE80"
+        android:strokeWidth="2"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M40,42 a4,4 0 1,0 0.01,0 M56,42 a4,4 0 1,0 0.01,0"
+        android:fillColor="#2DD4BF" />
+</vector>

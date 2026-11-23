@@ -1,0 +1,6 @@
+Versión inicial de Aréte:
+- Red social soberana y descentralizada basada en mallas locales (Bluetooth LE y Wi-Fi Direct).
+- Cifrado de extremo a extremo (E2EE) con verificación TOFU.
+- Cartas digitales, radar de cercanía y perfiles públicos/privados.
+- Mapas basados en OpenStreetMap y posicionamiento GPS nativo sin tracking.
+- 100% libre de rastreadores y servicios privativos (GPLv3).

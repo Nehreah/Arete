@@ -1,0 +1,874 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 8,
+    "identityHash": "a12dc9210ad258a39267101f9ca8a025",
+    "entities": [
+      {
+        "tableName": "local_identity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `ik_public_hex` TEXT NOT NULL, `device_id` TEXT NOT NULL, `device_epoch` INTEGER NOT NULL, `phrase_hash_hex` TEXT NOT NULL, `backup_hint` TEXT, `created_at_ms` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ikPublicHex",
+            "columnName": "ik_public_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceEpoch",
+            "columnName": "device_epoch",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phraseHashHex",
+            "columnName": "phrase_hash_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "backupHint",
+            "columnName": "backup_hint",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAtMs",
+            "columnName": "created_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "community",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`community_id_hex` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `owner_ik_hex` TEXT NOT NULL, `leader_ik_hex` TEXT, `current_head_seq` INTEGER NOT NULL, `current_head_hash_hex` TEXT NOT NULL, `current_epoch_id_hex` TEXT NOT NULL, `rules_version` INTEGER NOT NULL, `is_dissolved` INTEGER NOT NULL, `updated_at_ms` INTEGER NOT NULL, `tipo` TEXT NOT NULL, `foto_url` TEXT, `portada_url` TEXT, `foto_hash` TEXT, PRIMARY KEY(`community_id_hex`))",
+        "fields": [
+          {
+            "fieldPath": "communityIdHex",
+            "columnName": "community_id_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownerIkHex",
+            "columnName": "owner_ik_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "leaderIkHex",
+            "columnName": "leader_ik_hex",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "currentHeadSeq",
+            "columnName": "current_head_seq",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentHeadHashHex",
+            "columnName": "current_head_hash_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentEpochIdHex",
+            "columnName": "current_epoch_id_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rulesVersion",
+            "columnName": "rules_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDissolved",
+            "columnName": "is_dissolved",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMs",
+            "columnName": "updated_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fotoUrl",
+            "columnName": "foto_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "portadaUrl",
+            "columnName": "portada_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fotoHash",
+            "columnName": "foto_hash",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "community_id_hex"
+          ]
+        }
+      },
+      {
+        "tableName": "community_member",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`community_id_hex` TEXT NOT NULL, `author_ik_hex` TEXT NOT NULL, `role` TEXT NOT NULL, `status` TEXT NOT NULL, `joined_at_owner_seq` INTEGER NOT NULL, `designated_by_ik_hex` TEXT, `updated_at_ms` INTEGER NOT NULL, PRIMARY KEY(`community_id_hex`, `author_ik_hex`))",
+        "fields": [
+          {
+            "fieldPath": "communityIdHex",
+            "columnName": "community_id_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "authorIkHex",
+            "columnName": "author_ik_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "role",
+            "columnName": "role",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "joinedAtOwnerSeq",
+            "columnName": "joined_at_owner_seq",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "designatedByIkHex",
+            "columnName": "designated_by_ik_hex",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "updatedAtMs",
+            "columnName": "updated_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "community_id_hex",
+            "author_ik_hex"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_community_member_community_id_hex_role",
+            "unique": false,
+            "columnNames": [
+              "community_id_hex",
+              "role"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_community_member_community_id_hex_role` ON `${TABLE_NAME}` (`community_id_hex`, `role`)"
+          },
+          {
+            "name": "index_community_member_community_id_hex_status",
+            "unique": false,
+            "columnNames": [
+              "community_id_hex",
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_community_member_community_id_hex_status` ON `${TABLE_NAME}` (`community_id_hex`, `status`)"
+          }
+        ]
+      },
+      {
+        "tableName": "ledger_operation",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`op_id_hex` TEXT NOT NULL, `community_id_hex` TEXT NOT NULL, `version` INTEGER NOT NULL, `operation_type` INTEGER NOT NULL, `author_ik_hex` TEXT NOT NULL, `device_id` TEXT NOT NULL, `device_epoch` INTEGER NOT NULL, `device_seq` INTEGER NOT NULL, `prev_op_hash_hex` TEXT NOT NULL, `owner_head_seq` INTEGER NOT NULL, `owner_head_hash_hex` TEXT NOT NULL, `epoch_id_hex` TEXT NOT NULL, `timestamp_ms` INTEGER NOT NULL, `body_hex` TEXT NOT NULL, `signature_hex` TEXT NOT NULL, `validation_status` TEXT NOT NULL, `stored_at_ms` INTEGER NOT NULL, PRIMARY KEY(`op_id_hex`))",
+        "fields": [
+          {
+            "fieldPath": "opIdHex",
+            "columnName": "op_id_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "communityIdHex",
+            "columnName": "community_id_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operationType",
+            "columnName": "operation_type",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "authorIkHex",
+            "columnName": "author_ik_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceEpoch",
+            "columnName": "device_epoch",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceSeq",
+            "columnName": "device_seq",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prevOpHashHex",
+            "columnName": "prev_op_hash_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownerHeadSeq",
+            "columnName": "owner_head_seq",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownerHeadHashHex",
+            "columnName": "owner_head_hash_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "epochIdHex",
+            "columnName": "epoch_id_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestampMs",
+            "columnName": "timestamp_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bodyHex",
+            "columnName": "body_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "signatureHex",
+            "columnName": "signature_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "validationStatus",
+            "columnName": "validation_status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "storedAtMs",
+            "columnName": "stored_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "op_id_hex"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_ledger_operation_community_id_hex_device_seq",
+            "unique": false,
+            "columnNames": [
+              "community_id_hex",
+              "device_seq"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ledger_operation_community_id_hex_device_seq` ON `${TABLE_NAME}` (`community_id_hex`, `device_seq`)"
+          },
+          {
+            "name": "index_ledger_operation_community_id_hex_owner_head_seq",
+            "unique": false,
+            "columnNames": [
+              "community_id_hex",
+              "owner_head_seq"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ledger_operation_community_id_hex_owner_head_seq` ON `${TABLE_NAME}` (`community_id_hex`, `owner_head_seq`)"
+          },
+          {
+            "name": "index_ledger_operation_operation_type",
+            "unique": false,
+            "columnNames": [
+              "operation_type"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ledger_operation_operation_type` ON `${TABLE_NAME}` (`operation_type`)"
+          }
+        ]
+      },
+      {
+        "tableName": "epoch_key",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`community_id_hex` TEXT NOT NULL, `epoch_id_hex` TEXT NOT NULL, `ke_hex` TEXT NOT NULL, `is_canonical` INTEGER NOT NULL, `received_at_ms` INTEGER NOT NULL, PRIMARY KEY(`community_id_hex`, `epoch_id_hex`))",
+        "fields": [
+          {
+            "fieldPath": "communityIdHex",
+            "columnName": "community_id_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "epochIdHex",
+            "columnName": "epoch_id_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "keHex",
+            "columnName": "ke_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isCanonical",
+            "columnName": "is_canonical",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "receivedAtMs",
+            "columnName": "received_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "community_id_hex",
+            "epoch_id_hex"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_epoch_key_community_id_hex_is_canonical",
+            "unique": false,
+            "columnNames": [
+              "community_id_hex",
+              "is_canonical"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_epoch_key_community_id_hex_is_canonical` ON `${TABLE_NAME}` (`community_id_hex`, `is_canonical`)"
+          }
+        ]
+      },
+      {
+        "tableName": "local_event",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `organizer_ik_hex` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `date_time_ms` INTEGER NOT NULL, `latitude` REAL, `longitude` REAL, `location_name` TEXT NOT NULL, `privacy` TEXT NOT NULL, `community_id_hex` TEXT, `is_cancelled` INTEGER NOT NULL, `updated_at_ms` INTEGER NOT NULL, `firma_organizador` TEXT, `version` INTEGER NOT NULL, `foto_url` TEXT, `foto_hash` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "organizerIkHex",
+            "columnName": "organizer_ik_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dateTimeMs",
+            "columnName": "date_time_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "locationName",
+            "columnName": "location_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "privacy",
+            "columnName": "privacy",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "communityIdHex",
+            "columnName": "community_id_hex",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isCancelled",
+            "columnName": "is_cancelled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMs",
+            "columnName": "updated_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firmaOrganizador",
+            "columnName": "firma_organizador",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fotoUrl",
+            "columnName": "foto_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fotoHash",
+            "columnName": "foto_hash",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_local_event_community_id_hex",
+            "unique": false,
+            "columnNames": [
+              "community_id_hex"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_local_event_community_id_hex` ON `${TABLE_NAME}` (`community_id_hex`)"
+          },
+          {
+            "name": "index_local_event_date_time_ms",
+            "unique": false,
+            "columnNames": [
+              "date_time_ms"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_local_event_date_time_ms` ON `${TABLE_NAME}` (`date_time_ms`)"
+          },
+          {
+            "name": "index_local_event_organizer_ik_hex",
+            "unique": false,
+            "columnNames": [
+              "organizer_ik_hex"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_local_event_organizer_ik_hex` ON `${TABLE_NAME}` (`organizer_ik_hex`)"
+          }
+        ]
+      },
+      {
+        "tableName": "local_event_participant",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`evento_id` TEXT NOT NULL, `usuario_id` TEXT NOT NULL, `rol` TEXT NOT NULL, `updated_at_ms` INTEGER NOT NULL, PRIMARY KEY(`evento_id`, `usuario_id`))",
+        "fields": [
+          {
+            "fieldPath": "eventoId",
+            "columnName": "evento_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "usuarioId",
+            "columnName": "usuario_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rol",
+            "columnName": "rol",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMs",
+            "columnName": "updated_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "evento_id",
+            "usuario_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_local_event_participant_evento_id",
+            "unique": false,
+            "columnNames": [
+              "evento_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_local_event_participant_evento_id` ON `${TABLE_NAME}` (`evento_id`)"
+          },
+          {
+            "name": "index_local_event_participant_usuario_id",
+            "unique": false,
+            "columnNames": [
+              "usuario_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_local_event_participant_usuario_id` ON `${TABLE_NAME}` (`usuario_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "peer_profile",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`usuario_id` TEXT NOT NULL, `nombre` TEXT NOT NULL, `descripcion` TEXT NOT NULL, `foto_path` TEXT, `foto_hash` TEXT, `portada_path` TEXT, `portada_hash` TEXT, `perfil_ver` INTEGER NOT NULL, `es_amigo` INTEGER NOT NULL, `es_privado` INTEGER NOT NULL, `ultima_vez_visto` INTEGER NOT NULL, PRIMARY KEY(`usuario_id`))",
+        "fields": [
+          {
+            "fieldPath": "usuarioId",
+            "columnName": "usuario_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "descripcion",
+            "columnName": "descripcion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fotoPath",
+            "columnName": "foto_path",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fotoHash",
+            "columnName": "foto_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "portadaPath",
+            "columnName": "portada_path",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "portadaHash",
+            "columnName": "portada_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "perfilVer",
+            "columnName": "perfil_ver",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "esAmigo",
+            "columnName": "es_amigo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "esPrivado",
+            "columnName": "es_privado",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ultimaVezVisto",
+            "columnName": "ultima_vez_visto",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "usuario_id"
+          ]
+        }
+      },
+      {
+        "tableName": "peer_gustos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`usuario_id` TEXT NOT NULL, `intereses_json` TEXT NOT NULL, `categorias_json` TEXT NOT NULL, `actualizado_en` INTEGER NOT NULL, PRIMARY KEY(`usuario_id`))",
+        "fields": [
+          {
+            "fieldPath": "usuarioId",
+            "columnName": "usuario_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "interesesJson",
+            "columnName": "intereses_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "categoriasJson",
+            "columnName": "categorias_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actualizadoEn",
+            "columnName": "actualizado_en",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "usuario_id"
+          ]
+        }
+      },
+      {
+        "tableName": "peer_bitacora",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`estado_id` TEXT NOT NULL, `usuario_id` TEXT NOT NULL, `texto` TEXT NOT NULL, `foto_url` TEXT, `foto_hash` TEXT, `fecha` INTEGER NOT NULL, PRIMARY KEY(`estado_id`))",
+        "fields": [
+          {
+            "fieldPath": "estadoId",
+            "columnName": "estado_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "usuarioId",
+            "columnName": "usuario_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "texto",
+            "columnName": "texto",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fotoUrl",
+            "columnName": "foto_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fotoHash",
+            "columnName": "foto_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fecha",
+            "columnName": "fecha",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "estado_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_peer_bitacora_usuario_id",
+            "unique": false,
+            "columnNames": [
+              "usuario_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_peer_bitacora_usuario_id` ON `${TABLE_NAME}` (`usuario_id`)"
+          },
+          {
+            "name": "index_peer_bitacora_fecha",
+            "unique": false,
+            "columnNames": [
+              "fecha"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_peer_bitacora_fecha` ON `${TABLE_NAME}` (`fecha`)"
+          }
+        ]
+      },
+      {
+        "tableName": "peer_libreria",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`obra_id` TEXT NOT NULL, `usuario_id` TEXT NOT NULL, `titulo` TEXT NOT NULL, `sinopsis` TEXT NOT NULL, `tipo` TEXT NOT NULL, `caracteres_total` INTEGER NOT NULL, `contenido` TEXT, `actualizado_en` INTEGER NOT NULL, PRIMARY KEY(`obra_id`))",
+        "fields": [
+          {
+            "fieldPath": "obraId",
+            "columnName": "obra_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "usuarioId",
+            "columnName": "usuario_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "titulo",
+            "columnName": "titulo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sinopsis",
+            "columnName": "sinopsis",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "caracteresTotal",
+            "columnName": "caracteres_total",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contenido",
+            "columnName": "contenido",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "actualizadoEn",
+            "columnName": "actualizado_en",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "obra_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_peer_libreria_usuario_id",
+            "unique": false,
+            "columnNames": [
+              "usuario_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_peer_libreria_usuario_id` ON `${TABLE_NAME}` (`usuario_id`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a12dc9210ad258a39267101f9ca8a025')"
+    ]
+  }
+}

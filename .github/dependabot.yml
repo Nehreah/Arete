@@ -1,0 +1,37 @@
+version: 2
+updates:
+  # ── Dependencias de Gradle (Android / Kotlin) ───────────────────────────
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Bogota"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "android"
+    commit-message:
+      prefix: "chore(deps)"
+    # Agrupar actualizaciones de parches para reducir ruido en PRs
+    groups:
+      patch-updates:
+        update-types:
+          - "patch"
+
+  # ── GitHub Actions ───────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Bogota"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"
+    # Las Actions deben actualizarse por SHA pinned → Dependabot lo gestiona automáticamente

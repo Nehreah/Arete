@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- hayInternet() y el callback de red de ContenedorApp lo necesitan; dependía de que otra librería lo aportara al fusionar manifiestos -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Permisos Bluetooth para Android 12+ (API 31+) -->
+    <!-- 
+      ⚠️ ADVERTENCIA CRÍTICA DE ARQUITECTURA — NUNCA AGREGAR 'neverForLocation':
+      NO colocar android:usesPermissionFlags="neverForLocation" en este permiso.
+      
+      ¿Por qué?
+      Aréte calcula cercanía y distancia estimada por RSSI para su radar táctico
+      y descubrimiento mesh offline. En Android 12, 13, 14, 15 y 16, si se declara 'neverForLocation',
+      el sistema operativo asume que la app no usará Bluetooth para fines de proximidad geográfica
+      y DESCARTA AUTOMÁTICAMENTE los paquetes de anuncio BLE de dispositivos no emparejados.
+      Como consecuencia, dos celulares cercanos dejan de detectarse mutuamente.
+      Por tanto, este permiso DEBE permanecer sin dicha bandera y complementarse con ACCESS_FINE_LOCATION.
+    -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        tools:targetApi="s" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADVERTISE"
+        tools:targetApi="s" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_CONNECT"
+        tools:targetApi="s" />
+
+    <!-- Permisos Bluetooth legados (Android 11 y anteriores) -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+
+    <!-- Permisos de Red y WiFi -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" tools:targetApi="33" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+
+    <!-- Permisos de Audio y Cámara para Videollamadas 1-a-1 y Canales de Voz / PTT -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!-- Funciones de hardware opcionales -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <application
+        android:name=".AreteApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Arete_Social">
+
+        <service
+            android:name=".data.mesh.MeshForegroundService"
+            android:foregroundServiceType="connectedDevice"
+            android:exported="false" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Arete_Social"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

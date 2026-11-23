@@ -1,0 +1,8 @@
+# Definición de propietarios de código para Aréte / AntiRed Social
+# Rutas críticas de seguridad, criptografía y backend
+
+* @security-team
+/app/src/main/java/com/renea/antired_social/data/crypto/ @crypto-leads
+/app/src/main/java/com/renea/antired_social/domain/crypto/ @crypto-leads
+/app/src/main/java/com/renea/antired_social/data/mesh/ @mesh-leads
+/.github/ @infra-leads

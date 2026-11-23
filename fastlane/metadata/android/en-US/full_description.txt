@@ -1,0 +1,10 @@
+Aréte is a decentralized, tactical offline social networking and messaging app designed to operate 100% locally through ad-hoc mesh networks (Bluetooth Low Energy, Bluetooth Classic, and Wi-Fi LAN/Direct).
+
+Key Features:
+• 100% Local & Decentralized: Operates without reliance on central servers or cloud backends. Your data stays on your device.
+• P2P Mesh Messaging: Relay messages between nearby devices hop-by-hop, ideal for emergency scenarios, local events, or off-grid areas.
+• End-to-End Encryption (E2EE): Cryptographic security with elliptic curves (ECDH P-256 + AES-256-GCM) and ECDSA digital signatures.
+• Tactical Radar & Encounters: Discover nearby peers, rooms, and local events using native, privacy-respecting GPS.
+• Rooms & Letters: Group communications and personal letters to friends.
+• Michi (Local Pet): A virtual companion that lives directly on your phone with zero external AI or cloud telemetry.
+• Free & Open Source: Licensed under GNU General Public License v3.0 (GPL-3.0), completely free of proprietary tracking libraries.

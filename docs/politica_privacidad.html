@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Política de privacidad de Aréte, red social móvil 100% local, descentralizada y libre para Android.">
+<title>Política de Privacidad | Aréte</title>
+<link rel="icon" type="image/png" href="assets/icono.png">
+<style>
+:root {
+  color-scheme: light dark;
+  --primary-deep: #431019;
+  --primary: #941b2c;
+  --primary-light: #c92a3b;
+  --primary-tint: #fbebee;
+  --primary-border: #f2cbd1;
+  --primary-glow: rgba(148, 27, 44, 0.16);
+
+  --bg: #f8f6f7;
+  --surface: #ffffff;
+  --surface-alt: #fdfafd;
+  --texto: #221d20;
+  --suave: #62585e;
+  --borde: #e8dfe3;
+  --borde-light: #f0e8eb;
+  --acento: #f7ebef;
+  --verde-badge: #1b7340;
+  --verde-bg: #eaf6ee;
+  --tag-bg: #f0ebed;
+  --tag-text: #5c4e54;
+  --shadow: 0 10px 30px rgba(67, 16, 25, 0.07);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-deep: #1e060b;
+    --primary: #d92338;
+    --primary-light: #ff646e;
+    --primary-tint: #2a1116;
+    --primary-border: #4d1c25;
+    --primary-glow: rgba(255, 100, 110, 0.18);
+
+    --bg: #121316;
+    --surface: #1a1c22;
+    --surface-alt: #20232a;
+    --texto: #f2edf0;
+    --suave: #a99fa6;
+    --borde: #2c2f38;
+    --borde-light: #232630;
+    --acento: #26171b;
+    --verde-badge: #4ade80;
+    --verde-bg: #11291b;
+    --tag-bg: #272a33;
+    --tag-text: #cbd1db;
+    --shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  }
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--texto);
+  font: 16px/1.7 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Header */
+header {
+  background: linear-gradient(135deg, var(--primary-deep) 0%, var(--primary) 65%, var(--primary-light) 100%);
+  color: #ffffff;
+  padding: 48px 20px 42px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+header::before {
+  content: "";
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%);
+  pointer-events: none;
+}
+.wrap {
+  width: min(940px, calc(100% - 36px));
+  margin: 0 auto;
+}
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+.brand-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  object-fit: cover;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  font-size: .78rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.14);
+  padding: 4px 12px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  margin-bottom: 10px;
+}
+h1 {
+  line-height: 1.18;
+  margin: 6px 0 10px;
+  font-size: clamp(2rem, 5vw, 2.85rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+header p {
+  margin: 0;
+  max-width: 660px;
+  color: #faedf1;
+  font-size: 1.05rem;
+}
+
+/* Layout */
+main {
+  padding: 32px 0 56px;
+}
+article {
+  background: var(--surface);
+  border: 1px solid var(--borde);
+  border-radius: 20px;
+  padding: clamp(22px, 4.5vw, 44px);
+  box-shadow: var(--shadow);
+}
+
+/* Metadata Card */
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  background: var(--surface-alt);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 28px;
+}
+.meta-item {
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.meta-label {
+  display: block;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--suave);
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.meta-value {
+  color: var(--texto);
+  font-weight: 600;
+}
+.meta-value a {
+  color: var(--primary);
+  text-decoration: none;
+}
+.meta-value a:hover {
+  text-decoration: underline;
+}
+
+/* Table of Contents / Index chips */
+.toc-container {
+  background: var(--primary-tint);
+  border: 1px solid var(--primary-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 34px;
+}
+.toc-title {
+  margin: 0 0 12px 0;
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.toc-chips li {
+  margin: 0;
+}
+.toc-chips a {
+  display: inline-block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--texto);
+  border: 1px solid var(--borde);
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+}
+.toc-chips a:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+/* Typography & Sections */
+h2 {
+  color: var(--primary);
+  font-size: 1.35rem;
+  margin: 38px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--primary-border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  scroll-margin-top: 24px;
+}
+h2:first-of-type {
+  margin-top: 0;
+}
+h3 {
+  color: var(--texto);
+  font-size: 1.1rem;
+  margin: 22px 0 8px;
+}
+p {
+  margin: 12px 0;
+}
+a {
+  color: var(--primary);
+  overflow-wrap: anywhere;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+a:hover {
+  color: var(--primary-light);
+}
+ul, ol {
+  padding-left: 1.4rem;
+  margin: 12px 0;
+}
+li {
+  margin: 6px 0;
+}
+strong {
+  color: var(--texto);
+}
+
+/* Callouts & Badges */
+.notice {
+  border-left: 4px solid var(--primary);
+  background: var(--acento);
+  padding: 16px 18px;
+  border-radius: 10px;
+  margin: 22px 0;
+  font-size: 0.95rem;
+}
+.notice-green {
+  border-left-color: var(--verde-badge);
+  background: var(--verde-bg);
+}
+.notice strong {
+  color: var(--primary);
+}
+.notice-green strong {
+  color: var(--verde-badge);
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  vertical-align: middle;
+  margin-left: 6px;
+}
+.badge-green {
+  background: var(--verde-bg);
+  color: var(--verde-badge);
+  border: 1px solid var(--verde-badge);
+}
+
+/* Cards & Lists */
+.card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+.card-box {
+  background: var(--surface-alt);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 16px;
+}
+.card-box h4 {
+  margin: 0 0 6px 0;
+  font-size: 1rem;
+  color: var(--primary);
+}
+.card-box p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--suave);
+}
+
+/* Back to top button */
+.top-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 32px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--surface-alt);
+  border: 1px solid var(--borde);
+  transition: all 0.2s ease;
+}
+.top-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* Footer */
+footer {
+  color: var(--suave);
+  text-align: center;
+  padding: 0 16px 40px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+footer strong {
+  color: var(--texto);
+}
+
+@media(max-width: 600px) {
+  header {
+    padding: 34px 16px 28px;
+  }
+  .brand-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .brand-logo {
+    width: 60px;
+    height: 60px;
+  }
+  .meta-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+</style>
+</head>
+<body id="inicio">
+
+<header>
+  <div class="wrap">
+    <div class="brand-header">
+      <img src="assets/icono.png" alt="Aréte Logo" class="brand-logo" onerror="this.style.display='none'">
+      <div>
+        <div class="eyebrow">Aréte · Red Social Local y Cercana</div>
+        <h1>Política de Privacidad</h1>
+        <p>Transparencia, seguridad y control total sobre tus datos personales y tu privacidad en Aréte.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <article>
+
+    <!-- Ficha de Datos del Responsable -->
+    <div class="meta-grid">
+      <div class="meta-item">
+        <span class="meta-label">Responsable del Tratamiento</span>
+        <span class="meta-value">Proyecto Aréte (Comunidad de Software Libre)</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Contacto de Privacidad</span>
+        <span class="meta-value"><a href="mailto:politicaarete@gmail.com">politicaarete@gmail.com</a></span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Domicilio y Distribución</span>
+        <span class="meta-value">Proyecto Comunitario Descentralizado (F-Droid)</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Vigencia y Versión</span>
+        <span class="meta-value">22 de noviembre de 2026 · v3.0 (Local-First / P2P)</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Licencia y Marco</span>
+        <span class="meta-value">GNU GPL-3.0 · Ley 1581 de 2012 (Hábeas Data)</span>
+      </div>
+    </div>
+
+    <!-- Índice Rápido de Navegación -->
+    <div class="toc-container">
+      <div class="toc-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        Contenido de la Política
+      </div>
+      <ul class="toc-chips">
+        <li><a href="#sec-1">1. Quiénes somos</a></li>
+        <li><a href="#sec-2">2. Edad mínima (+18)</a></li>
+        <li><a href="#sec-3">3. Datos que recogemos</a></li>
+        <li><a href="#sec-4">4. Permisos de Android</a></li>
+        <li><a href="#sec-5">5. Finalidades</a></li>
+        <li><a href="#sec-6">6. Ubicación y visibilidad</a></li>
+        <li><a href="#sec-7">7. Cifrado E2EE</a></li>
+        <li><a href="#sec-8">8. Llamadas y audio</a></li>
+        <li><a href="#sec-9">9. Contenido público</a></li>
+        <li><a href="#sec-10">10. Terceros y proveedores</a></li>
+        <li><a href="#sec-11">11. Mascota Michi</a></li>
+        <li><a href="#sec-12">12. Modo invitado</a></li>
+        <li><a href="#sec-13">13. Conservación de datos</a></li>
+        <li><a href="#eliminacion-datos">14. Borrado de datos</a></li>
+        <li><a href="#sec-15">15. Tus derechos (Hábeas Data)</a></li>
+        <li><a href="#sec-16">16. Datos sensibles</a></li>
+        <li><a href="#sec-17">17. Seguridad técnica</a></li>
+        <li><a href="#sec-18">18. Bloqueos y reportes</a></li>
+        <li><a href="#sec-19">19. Almacenamiento local</a></li>
+        <li><a href="#sec-20">20. Enlaces externos</a></li>
+        <li><a href="#sec-21">21. Cambios</a></li>
+        <li><a href="#sec-22">22. Contacto directo</a></li>
+        <li><a href="#seguridad-infantil" style="color: #d92338; font-weight: 700;">🛡️ Estándares de Seguridad Infantil (CSAM/CSAE)</a></li>
+        <li><a href="#eula" style="color: var(--accent); font-weight: 600;">📜 Términos y Condiciones</a></li>
+      </ul>
+    </div>
+
+    <!-- SECCIÓN 1 -->
+    <h2 id="sec-1">1. Quiénes somos y a qué se aplica esta política</h2>
+    <p><strong>Aréte</strong> (en adelante, «la aplicación», «Aréte», «nosotros») es una aplicación móvil social para Android que permite descubrir y conectar con personas, lugares, eventos y comunidades cercanas, conversar, compartir contenido y cuidar a una mascota virtual llamada Michi.</p>
+    <div class="notice">
+      <strong>Información del responsable del tratamiento:</strong><br>
+      • <strong>Titular:</strong> Proyecto Aréte (Comunidad de Software Libre y Código Abierto).<br>
+      • <strong>Distribución:</strong> Red descentralizada y repositorio F-Droid.<br>
+      • <strong>Correo de privacidad y peticiones:</strong> <a href="mailto:politicaarete@gmail.com">politicaarete@gmail.com</a>.
+    </div>
+    <p>Esta política explica qué datos personales recogemos, para qué los usamos, con quién los compartimos, cuánto tiempo los conservamos y qué derechos tienes. Aplica a todas las funciones de la aplicación, tanto si usas una cuenta registrada como si entras en modo invitado.</p>
+    <p>Al crear una cuenta o usar la aplicación aceptas el tratamiento descrito aquí. Si no estás de acuerdo, te pedimos no utilizar la aplicación.</p>
+    <p>Esta política se rige por la <strong>Ley Estatutaria 1581 de 2012</strong>, el Decreto 1377 de 2013 (compilado en el Decreto 1074 de 2015) y las demás normas colombianas de protección de datos personales (hábeas data), sin perjuicio de otras normas protectoras que resulten aplicables conforme a tu lugar de residencia.</p>
+
+    <!-- SECCIÓN 2 -->
+    <h2 id="sec-2">2. Quién puede usar Aréte (Edad mínima: mayores de 18 años)</h2>
+    <p>Aréte está dirigida exclusivamente a personas <strong>mayores de 18 años</strong> (18 años cumplidos en adelante). Está terminantemente prohibido el uso de la aplicación, el acceso y la creación de cuentas por parte de menores de 18 años.</p>
+    <p>No recopilamos intencionalmente datos de menores de 18 años. Si descubrimos o sospechamos que una cuenta pertenece a un menor de 18 años, procederemos a cancelarla y eliminar permanentemente todos sus datos de forma inmediata y definitiva. Si tienes sospechas de que esto ha ocurrido, escríbenos de inmediato a <a href="mailto:politicaarete@gmail.com">politicaarete@gmail.com</a>.</p>
+    <p>Para conocer en detalle nuestro protocolo de tolerancia cero ante el abuso sexual infantil y mecanismos de denuncia, consulta nuestros <a href="#seguridad-infantil"><strong>🛡️ Estándares de Seguridad Infantil (CSAM/CSAE)</strong></a>.</p>
+
+    <!-- SECCIÓN 3 -->
+    <h2 id="sec-3">3. Datos que recogemos</h2>
+
+    <h3>3.1. Datos que tú nos proporcionas directamente</h3>
+    <ul>
+      <li><strong>Cuenta:</strong> nombre de usuario, contraseña (gestionada de forma segura mediante hash criptográfico y nunca visible en texto claro) y tu nombre visible. Aréte no solicita ni recopila tu correo electrónico personal; utiliza un identificador técnico interno para la autenticación.</li>
+      <li><strong>Perfil:</strong> foto de perfil, foto de portada, biografía/descripción, hobby, deporte, ritmo musical preferido, serie favorita, libro favorito, signo zodiacal, estado de Michi y configuración de perfil privado. Todos estos campos son opcionales, salvo el nombre visible.</li>
+      <li><strong>Contenido que generas:</strong> mensajes directos, cartas, publicaciones, comentarios, reacciones («me gusta»), imágenes y archivos adjuntos que subes a comunidades, murales o a tu perfil, eventos y lugares que creas, obras y lecturas de la librería, y comunidades que fundas o a las que te unes.</li>
+      <li><strong>Relaciones sociales:</strong> solicitudes de amistad enviadas y recibidas, listado de amistades y usuarios que decides bloquear.</li>
+      <li><strong>Mascota Michi:</strong> nombre, especie, estado emocional y de energía de tu mascota, así como el historial de avisos y mensajes que Michi te comparte.</li>
+    </ul>
+
+    <h3>3.2. Datos que se generan automáticamente al usar la aplicación</h3>
+    <ul>
+      <li><strong>Ubicación geográfica (precisa y aproximada):</strong> latitud, longitud y marca de tiempo de última actualización, utilizadas para situarte en el mapa interactivo y permitirte descubrir personas, lugares y eventos cercanos según tus preferencias de visibilidad.</li>
+      <li><strong>Región aproximada:</strong> para recomendarte contenido, eventos y comunidades afines a tu zona geográfica.</li>
+      <li><strong>Datos de proximidad por Bluetooth de Baja Energía (BLE):</strong> cuando la función de red local/malla está encendida, la aplicación emite y detecta señales con identificadores temporales rotativos y datos mínimos de perfil («pases») con dispositivos cercanos que también ejecutan Aréte sin requerir conexión a Internet.</li>
+      <li><strong>Señales de comunicación:</strong> metadatos técnicos imprescindibles para establecer llamadas y garantizar la entrega de mensajes (ej. remitente, destinatario, estado de señal y llamada).</li>
+      <li><strong>Datos de conexión y dispositivo:</strong> estado de conectividad a la red, versión de Android, modelo de hardware y versión de la aplicación para diagnóstico y seguridad.</li>
+      <li><strong>Claves criptográficas:</strong> tu clave pública de firma y clave pública de cifrado. <em>Tu clave privada nunca abandona tu dispositivo.</em></li>
+      <li><strong>Encuentros en curso:</strong> cuando tú y una amistad inician un encuentro mutuo, se procesa el punto de encuentro acordado, el medio de desplazamiento y la ubicación en tiempo real mientras dicho encuentro permanece activo.</li>
+    </ul>
+
+    <h3>3.3. Datos que NO recogemos <span class="badge badge-green">Compromiso</span></h3>
+    <div class="notice notice-green">
+      <ul>
+        <li><strong>No vendemos</strong> tus datos personales ni los comercializamos bajo ninguna circunstancia.</li>
+        <li><strong>No usamos SDKs de analítica publicitaria</strong> ni rastreadores de comportamiento entre aplicaciones.</li>
+        <li><strong>No accedemos</strong> a tu libreta de contactos, a tu galería completa de fotos, ni a los mensajes de texto (SMS) o historial de llamadas del teléfono.</li>
+        <li><strong>No grabamos ni almacenamos</strong> el contenido de tus llamadas de voz o video en ningún servidor.</li>
+      </ul>
+    </div>
+
+    <!-- SECCIÓN 4 -->
+    <h2 id="sec-4">4. Permisos del dispositivo Android y su finalidad</h2>
+    <p>La aplicación solicita únicamente los permisos estrictamente necesarios para su funcionamiento. Puedes revocar cualquiera de ellos cuando lo desees desde los Ajustes de Android:</p>
+    <div class="card-list">
+      <div class="card-box">
+        <h4>Ubicación (precisa y aproximada)</h4>
+        <p>Alimenta el mapa interactivo, el radar de cercanía, los encuentros con amistades y el descubrimiento local.</p>
+      </div>
+      <div class="card-box">
+        <h4>Bluetooth y dispositivos cercanos</h4>
+        <p>Permite el descubrimiento fuera de línea y el intercambio de mensajes/pases en red local sin usar Internet (Android 12+ sin derivación de ubicación).</p>
+      </div>
+      <div class="card-box">
+        <h4>Cámara</h4>
+        <p>Habilita la participación en videollamadas y la captura de fotos para tu perfil o publicaciones.</p>
+      </div>
+      <div class="card-box">
+        <h4>Micrófono y audio</h4>
+        <p>Utilizado para las llamadas de voz y video en tiempo real.</p>
+      </div>
+      <div class="card-box">
+        <h4>Notificaciones</h4>
+        <p>Te alerta sobre mensajes nuevos, solicitudes de amistad, encuentros y avisos de Michi.</p>
+      </div>
+      <div class="card-box">
+        <h4>Servicio en primer plano</h4>
+        <p>Mantiene activa la red de proximidad BLE con un indicador visible en la barra de estado de Android.</p>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 5 -->
+    <h2 id="sec-5">5. Para qué usamos tus datos (Finalidades)</h2>
+    <p>Tratamos tus datos sobre la base de tu consentimiento y para las siguientes finalidades legítimas:</p>
+    <ol>
+      <li><strong>Prestación del servicio:</strong> gestionar tu cuenta, mostrar tu perfil, procesar conversaciones, llamadas, comunidades, eventos, lugares, encuentros y visualización en el mapa.</li>
+      <li><strong>Descubrimiento y cercanía:</strong> conectarte con usuarios y actividades del entorno según el estado de visibilidad que hayas configurado libremente.</li>
+      <li><strong>Seguridad y moderación:</strong> autenticación confiable, prevención de abusos, spam o fraudes, y ejecución efectiva de bloqueos entre usuarios.</li>
+      <li><strong>Mascota Michi:</strong> registrar el progreso, estado y mensajes del juego local.</li>
+      <li><strong>Comunicaciones operativas:</strong> avisos esenciales de seguridad, servicio y actualizaciones.</li>
+      <li><strong>Mantenimiento técnico:</strong> detección y corrección de fallas para garantizar la estabilidad de la app.</li>
+      <li><strong>Cumplimiento de obligaciones legales:</strong> responder a requerimientos judiciales o administrativos legalmente fundados.</li>
+    </ol>
+
+    <!-- SECCIÓN 6 -->
+    <h2 id="sec-6">6. Ubicación y visibilidad: control total en tus manos</h2>
+    <p>Aréte te concede tres estados de visibilidad que tú controlas en todo momento:</p>
+    <ul>
+      <li><strong>Visible:</strong> otras personas pueden verte en el mapa y en el radar de cercanía según tu configuración de privacidad y amistades.</li>
+      <li><strong>Invisible:</strong> tu perfil no aparece para nadie en el mapa ni en el radar.</li>
+      <li><strong>Oculto:</strong> tu coordenada geográfica no se transmite ni se comparte.</li>
+    </ul>
+    <div class="notice">
+      <strong>Privacidad estricta en Encuentros:</strong><br>
+      La ubicación en tiempo real compartida durante un encuentro solo es visible para las dos personas participantes y únicamente mientras el encuentro esté activo. Tan pronto el encuentro finaliza, es cancelado, rechazado o caduca, <strong>estas ubicaciones temporales se destruyen y eliminan automáticamente de forma inmediata</strong>. Las solicitudes vencen a los 10 minutos y cualquier encuentro concluye como máximo a los 60 minutos.
+    </div>
+
+    <!-- SECCIÓN 7 -->
+    <h2 id="sec-7">7. Mensajes, cartas y cifrado de extremo a extremo</h2>
+    <p>La privacidad de tus conversaciones personales es prioritaria:</p>
+    <ul>
+      <li><strong>Cifrado de Extremo a Extremo (E2EE):</strong> los mensajes directos entre dos personas se cifran en el dispositivo del remitente utilizando la clave pública del destinatario. La clave privada necesaria para descifrarlos vive exclusivamente en el dispositivo del destinatario. <em>Nosotros no podemos leer tus mensajes directos.</em></li>
+      <li><strong>Metadatos de entrega:</strong> para encaminar los mensajes cifrados a través de la infraestructura, se procesan los identificadores técnicos de remitente, destinatario, fecha y conversación.</li>
+      <li><strong>Salas comunitarias, murales y cartas:</strong> el contenido compartido en comunidades, murales públicos y cartas se almacena en el servidor para permitir su lectura por los miembros autorizados.</li>
+      <li><strong>Comunicaciones seguras:</strong> toda la transmisión con los servidores se efectúa mediante canales seguros cifrados bajo protocolo HTTPS / TLS.</li>
+    </ul>
+
+    <!-- SECCIÓN 8 -->
+    <h2 id="sec-8">8. Llamadas de voz y video, notas de voz y Push-to-Talk (PTT)</h2>
+    <p>La cámara y el micrófono se encienden únicamente mientras te encuentres dentro de una llamada activa o mientras mantengas presionado el botón para grabar una nota de voz o emitir un mensaje Push-to-Talk (PTT). <strong>No grabamos las llamadas ni almacenamos el flujo de audio o video en vivo de llamadas en ningún servidor.</strong> Las notas de voz enviadas de forma voluntaria en los chats se transmiten cifradas mediante HTTPS/TLS y se custodian temporalmente con la única finalidad de ser entregadas al destinatario o miembros del chat correspondiente.</p>
+
+    <!-- SECCIÓN 9 -->
+    <h2 id="sec-9">9. Contenido público y lo que otros ven</h2>
+    <p>El contenido que publicas en comunidades abiertas, murales, eventos, lugares o en tu perfil público será visible para otros usuarios según las opciones de privacidad elegidas. Te aconsejamos ser prudente y no divulgar información sensible o confidencial, ya que otros usuarios podrían capturar o reproducir el contenido visible fuera del alcance de la aplicación.</p>
+
+    <!-- SECCIÓN 10 -->
+    <h2 id="sec-10">10. Con quién compartimos tus datos</h2>
+    <p>No comercializamos ni recopilamos tus datos con nadie. Al ser una arquitectura 100% local y soberana:</p>
+    <ul>
+      <li><strong>Otros usuarios en la red de malla (Mesh):</strong> Únicamente reciben los paquetes cifrados o perfil público que tú transmites deliberadamente a través de Bluetooth BLE o Wi-Fi local al interactuar o descubrirte.</li>
+      <li><strong>Cero servidores intermediarios:</strong> Aréte no utiliza servidores centrales, nubes corporativas ni bases de datos remotas.</li>
+      <li><strong>OpenStreetMap (teselas del mapa):</strong> Para dibujar el mapa visual local, el cliente osmdroid descarga imágenes de mapa desde los servidores de OpenStreetMap. Esas solicitudes incluyen únicamente la zona visible y tu IP de conexión hacia el servidor de mapas, sin identificadores de usuario ni datos de perfil.</li>
+      <li><strong>Autoridades judiciales o administrativas:</strong> Al no operar servidores centrales ni almacenar registros de usuarios, Aréte no custodia tus datos ni comunicaciones en ninguna base de datos externa.</li>
+    </ul>
+
+    <!-- SECCIÓN 11 -->
+    <h2 id="sec-11">11. Mascota virtual Michi</h2>
+    <p>Los datos de Michi (su nombre, nivel de cariño, energía, estado y bitácora de mensajes) se custodian prioritariamente de manera <strong>local en el almacenamiento de tu propio dispositivo</strong>. Los consejos y frases de Michi son generados internamente por la aplicación sin enviar tu interacción a servidores de analítica externa.</p>
+
+    <!-- SECCIÓN 12 -->
+    <h2 id="sec-12">12. Modo invitado</h2>
+    <p>Aréte ofrece un modo de acceso invitado que permite explorar la interfaz de la aplicación sin suministrar correo electrónico ni crear una cuenta. En este modo, tus preferencias se almacenan localmente en tu teléfono. Si más adelante decides registrarte, tu cuenta formal quedará amparada por los términos completos de esta política.</p>
+
+    <!-- SECCIÓN 13 -->
+    <h2 id="sec-13">13. Cuánto tiempo conservamos tus datos</h2>
+    <ul>
+      <li><strong>Cuenta y perfil:</strong> mientras conserves tu cuenta activa.</li>
+      <li><strong>Contenido público y mensajes:</strong> mientras la conversación o publicación exista y no la hayas eliminado, o hasta que canceles tu cuenta.</li>
+      <li><strong>Ubicación de encuentros:</strong> se borra inmediatamente al finalizar, cancelarse o expirar el encuentro.</li>
+      <li><strong>Última ubicación de perfil:</strong> se sobreescribe con cada nueva actualización o se elimina al poner tu visibilidad en «Oculto» o «Invisible».</li>
+      <li><strong>Señales temporales de llamada:</strong> se purgan tan pronto concluye la sesión de conexión.</li>
+    </ul>
+
+    <!-- SECCIÓN 14 -->
+    <h2 id="sec-14">14. Eliminación de cuenta y solicitud de borrado de datos</h2>
+    <div id="eliminacion-datos" class="card-box" style="background: color-mix(in srgb, var(--accent) 8%, transparent); border-left: 4px solid var(--accent); margin: 20px 0;">
+      <h3 style="margin-top: 0; color: var(--accent);">Mecanismo de solicitud de eliminación de datos</h3>
+      <p>Tienes el derecho fundamental a eliminar tu cuenta y solicitar la supresión total de tus datos personales en cualquier momento, tanto si conservas la aplicación instalada como si ya la has desinstalado:</p>
+      <ul>
+        <li><strong>Desde la aplicación (Inmediato):</strong> Accede a <strong>Perfil &gt; Ajustes &gt; Eliminar cuenta y datos</strong> y confirma la acción en el diálogo emergente. Tu perfil, mensajes, publicaciones y datos locales en el dispositivo se eliminarán de forma permanente e instantánea.</li>
+        <li><strong>Vía solicitud web / Correo directo:</strong> Si no tienes acceso a la app o ya la desinstalaste, puedes solicitar la eliminación enviando un mensaje directo mediante el botón a continuación:
+          <div style="margin: 14px 0;">
+            <a href="mailto:politicaarete@gmail.com?subject=Solicitud%20de%20Eliminaci%C3%B3n%20de%20Cuenta%20y%20Datos%20-%20Ar%C3%A9te&body=Hola,%20solicito%20la%20eliminaci%C3%B3n%20definitiva%20de%20mi%20cuenta%20de%20Ar%C3%A9te%20y%20todos%20los%20datos%20asociados.%0A%0ANombre%20de%20usuario%20o%20correo:%20" 
+               class="top-btn" 
+               style="display: inline-flex; align-items: center; gap: 8px; font-weight: bold; padding: 12px 20px; background: var(--accent); color: #fff; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
+              📩 Solicitar eliminación de mi cuenta y datos personales
+            </a>
+          </div>
+          O enviando un correo a <a href="mailto:politicaarete@gmail.com">politicaarete@gmail.com</a> con el asunto <em>«Solicitud de Eliminación de Cuenta y Datos - Aréte»</em>.
+        </li>
+      </ul>
+      <p style="font-size: 0.9em; margin-bottom: 0;"><strong>Tipos de datos que se eliminan:</strong> Nombre de usuario, identificador único (UUID), foto de perfil y portada, biografía, mensajes y cartas directas, publicaciones en murales, comentarios, reacciones, membresías a comunidades y registros de ubicación. Las solicitudes por correo se procesan en un plazo máximo de 48 horas laborables.</p>
+    </div>
+
+    <!-- SECCIÓN 15 -->
+    <h2 id="sec-15">15. Tus derechos como titular (Ley 1581 de 2012)</h2>
+    <p>Como titular de datos personales según la legislación colombiana de Hábeas Data, gozas de los siguientes derechos:</p>
+    <ul>
+      <li><strong>Conocer, actualizar y rectificar</strong> tus datos personales frente a información parcial, inexacta o incompleta.</li>
+      <li><strong>Solicitar prueba</strong> de la autorización otorgada para el tratamiento.</li>
+      <li><strong>Ser informado</strong> sobre el uso concreto que se le ha dado a tus datos.</li>
+      <li><strong>Presentar quejas</strong> ante la <em>Superintendencia de Industria y Comercio (SIC)</em> por infracciones a la normatividad de protección de datos.</li>
+      <li><strong>Revocar la autorización y/o solicitar la supresión</strong> de los datos cuando en el tratamiento no se respeten los principios y garantías constitucionales.</li>
+      <li><strong>Acceder en forma gratuita</strong> a tus datos personales que hayan sido objeto de tratamiento.</li>
+    </ul>
+    <div class="notice">
+      <strong>Canal para ejercer tus derechos:</strong> Envía un correo a <a href="mailto:politicaarete@gmail.com">politicaarete@gmail.com</a> con el asunto «Ejercicio de Derechos Hábeas Data», señalando tu nombre completo, identificador de cuenta y tu solicitud concreta.<br>
+      • <strong>Consultas:</strong> se atienden en un plazo máximo de <strong>10 días hábiles</strong>.<br>
+      • <strong>Reclamos:</strong> se atienden en un plazo máximo de <strong>15 días hábiles</strong>.
+    </div>
+
+    <!-- SECCIÓN 16 -->
+    <h2 id="sec-16">16. Datos sensibles</h2>
+    <p>Aréte no requiere ni condiciona su uso a la entrega de datos sensibles (origen racial, convicciones religiosas o filosóficas, pertenencia a sindicatos, datos de salud o vida sexual). Algunos campos opcionales del perfil (como gustos, descripción o signo zodiacal) son suministrados bajo tu propia y libre decisión. No estás obligado en ningún caso a diligenciar información de carácter sensible.</p>
+
+    <!-- SECCIÓN 17 -->
+    <h2 id="sec-17">17. Medidas de seguridad técnica</h2>
+    <p>Implementamos salvaguardas técnicas y operativas diseñadas para proteger la confidencialidad de tus datos:</p>
+    <ul>
+      <li>Cifrado de extremo a extremo (E2EE) en los mensajes directos con curvas elípticas ECDH y AES-256-GCM.</li>
+      <li>Bases de datos locales en SQLite cifradas y protegidas por la sandbox de Android.</li>
+      <li>Aislamiento de claves maestras y frase semilla en el almacenamiento seguro de hardware (Android KeyStore).</li>
+      <li>Comunicaciones locales directas P2P protegidas por firma criptográfica Ed25519.</li>
+    </ul>
+
+    <!-- SECCIÓN 18 -->
+    <h2 id="sec-18">18. Bloqueos, diversidad y convivencia entre usuarios</h2>
+    <p>Aréte es una red social progresista desde su fundación que respalda la diversidad en todo su esplendor (género, identidad, orientación, credo, etnia y pensamiento). Nuestra meta es tejer lazos humanos solidarios y cercanos, nunca generar trincheras ni fomentar diferencias.</p>
+    <p><strong>En Aréte se tolera todo, menos la intolerancia:</strong> la libertad de opinión no incluye la libertad de agredir, acosar ni discriminar a otros seres humanos. No toleramos discursos de odio bajo ninguna circunstancia.</p>
+    <p>Puedes bloquear a cualquier usuario en cualquier momento. El bloqueo interrumpe inmediatamente el intercambio de mensajes, encuentros y visibilidad mutua en el mapa con esa persona. Si observas conductas abusivas, acoso, intolerancia o violaciones a la convivencia, puedes reportarlo dentro de la aplicación (botón 🚩) o a <a href="mailto:politicaarete@gmail.com">politicaarete@gmail.com</a> para la suspensión o expulsión inmediata de la cuenta infractora. Asimismo, la app cuenta con una opción prioritaria para reportar material de abuso o explotación sexual infantil; para más información, consulta nuestros <a href="#seguridad-infantil"><strong>Estándares de Seguridad Infantil</strong></a>.</p>
+
+    <!-- SECCIÓN 19 -->
+    <h2 id="sec-19">19. Almacenamiento local en el dispositivo</h2>
+    <p>La aplicación móvil no utiliza cookies de seguimiento comercial o de publicidad web. El almacenamiento local en tu dispositivo se utiliza únicamente para fines técnicos de sesión (tokens de autenticación seguros) y preferencias de la interfaz (modo oscuro/claro, preferencias del mapa y estado de Michi).</p>
+
+    <!-- SECCIÓN 20 -->
+    <h2 id="sec-20">20. Enlaces a servicios externos</h2>
+    <p>Aréte puede contener enlaces hacia sitios o servicios web externos (como lecturas de la librería o enlaces de eventos). Dichos sitios operan bajo sus propios términos y políticas de privacidad; te recomendamos revisarlas al visitarlos.</p>
+
+    <!-- SECCIÓN 21 -->
+    <h2 id="sec-21">21. Modificaciones a la política de privacidad</h2>
+    <p>Podemos modificar esta política para reflejar evoluciones tecnológicas o regulatorias. Publicaremos siempre la versión actualizada con su correspondiente fecha de entrada en vigencia. Cuando los cambios sean sustanciales, te notificaremos mediante un aviso destacado en la aplicación antes de que comiencen a regir.</p>
+
+    <!-- SECCIÓN 22 -->
+    <h2 id="sec-22">22. Canales de contacto y autoridad de control</h2>
+    <p>Para formular preguntas, sugerencias o formular reclamos sobre esta Política de Privacidad o el tratamiento de tus datos personales, puedes contactar al responsable:</p>
+    <div class="card-box" style="margin: 16px 0;">
+      <p style="margin: 4px 0;"><strong>Responsable:</strong> Proyecto Aréte (Comunidad de Software Libre)</p>
+      <p style="margin: 4px 0;"><strong>Correo electrónico:</strong> <a href="mailto:politicaarete@gmail.com">politicaarete@gmail.com</a></p>
+      <p style="margin: 4px 0;"><strong>Distribución:</strong> Red Descentralizada / Repositorio F-Droid</p>
+    </div>
+    <p>Asimismo, te informamos que en Colombia la autoridad competente para la protección de datos personales es la <strong>Superintendencia de Industria y Comercio (SIC)</strong> (<a href="https://www.sic.gov.co" target="_blank" rel="noopener">www.sic.gov.co</a>), ante la cual podrás presentar quejas si consideras que tus derechos de Hábeas Data han sido vulnerados.</p>
+
+    <a href="#inicio" class="top-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+      Volver al inicio
+    </a>
+
+  </article>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECCIÓN 2: TÉRMINOS Y CONDICIONES DE USO (EULA)
+       ═══════════════════════════════════════════════════════ -->
+  <article id="eula" style="margin-top: 48px; border-top: 2px solid var(--accent); padding-top: 32px;">
+    <div class="doc-header" style="margin-bottom: 32px;">
+      <div class="brand-row">
+        <img src="icono.png" alt="Aréte Logo" class="brand-logo" onerror="this.style.display='none'">
+        <div>
+          <h1 class="doc-title">Términos y Condiciones de Uso</h1>
+          <p class="doc-subtitle">Aréte — Red Social Local y Privada</p>
+        </div>
+      </div>
+      <div class="meta-grid">
+        <div class="meta-item"><span class="meta-label">Versión</span><span class="meta-value">3.0 (GPL-3.0)</span></div>
+        <div class="meta-item"><span class="meta-label">Vigencia</span><span class="meta-value">22 de noviembre de 2026</span></div>
+        <div class="meta-item"><span class="meta-label">Proyecto</span><span class="meta-value">Proyecto Aréte (Software Libre)</span></div>
+        <div class="meta-item"><span class="meta-label">Contacto</span><span class="meta-value"><a href="mailto:politicaarete@gmail.com">politicaarete@gmail.com</a></span></div>
+      </div>
+    </div>
+
+    <div class="card-box" style="background: color-mix(in srgb, var(--accent) 10%, transparent); border-left: 4px solid var(--accent); margin-bottom: 24px;">
+      <p><strong>🌈 ESPACIO PROGRESISTA, DIVERSO Y DE RESPETO MUTUO:</strong><br>
+      Aréte apoya la diversidad en todo su esplendor (género, credo, etnia, orientación y pensamiento) y busca tejer lazos humanos, no formar diferencias. <strong>Se tolera todo, menos la intolerancia</strong>: la libertad de opinión no incluye la libertad de atacar o discriminar a otros. Mantenemos tolerancia cero ante discursos de odio o acoso.</p>
+    </div>
+
+    <h2>1. Aceptación</h2>
+    <p>Al descargar, instalar o utilizar Aréte (en adelante «la App»), aceptas quedar vinculado por estos Términos y Condiciones de Uso («Términos») y por nuestra <a href="#inicio">Política de Privacidad</a>. Si no estás de acuerdo, debes desinstalar la App y no utilizarla.</p>
+
+    <h2>2. Descripción del servicio</h2>
+    <p>Aréte es una red social de descubrimiento local para dispositivos Android que permite a sus usuarios:</p>
+    <ul>
+      <li>Detectar personas cercanas mediante Bluetooth y Wi-Fi local (sin GPS obligatorio).</li>
+      <li>Intercambiar mensajes directos con cifrado de extremo a extremo (E2EE).</li>
+      <li>Publicar contenido en murales de comunidades locales.</li>
+      <li>Participar en comunidades temáticas geolocalizadas.</li>
+      <li>Interactuar con una mascota virtual («Michi»).</li>
+    </ul>
+
+    <h2>3. Requisitos de edad y elegibilidad (Estrictamente mayores de 18 años)</h2>
+    <p>Para registrarte y utilizar Aréte debes ser <strong>mayor de edad legal (18 años cumplidos en adelante)</strong>. Declaras bajo la gravedad de juramento cumplir con este requisito al crear tu cuenta.</p>
+    <p><strong>Está terminantemente prohibido el registro, acceso y uso de la plataforma a personas menores de 18 años.</strong> Aréte mantiene una política de tolerancia cero ante cuentas creadas por menores de edad; si se detecta cualquier cuenta perteneciente a alguien menor de 18 años, será eliminada de forma inmediata, definitiva y sin previo aviso junto con toda su información asociada.</p>
+
+    <h2>4. Valores comunitarios: Diversidad, inclusión y convivencia</h2>
+    <p>Aréte es una aplicación progresista desde su fundación, concebida para que todas las personas puedan expresarse y compartir en un entorno seguro, humano y libre de discriminación:</p>
+    <ul>
+      <li><strong>Apoyo irrestricto a la diversidad:</strong> celebramos y respaldamos la diversidad en todo su esplendor, incluyendo género, identidad y expresión de género, orientación sexual, credo o creencia religiosa, etnia, raza, procedencia geográfica, edad y cosmovisión.</li>
+      <li><strong>Tejer lazos, no formar diferencias:</strong> la plataforma nace para unir a las personas a nivel local, promover la empatía, el encuentro cara a cara y la solidaridad comunitaria, no para crear trincheras, odio ni divisiones innecesarias.</li>
+      <li><strong>Se tolera todo, menos la intolerancia:</strong> el respeto a la dignidad ajena es la condición innegociable de uso de Aréte. La libertad de opinión y expresión no ampara, bajo ningún concepto, la libertad de atacar, hostigar, difamar ni discriminar a otros seres humanos.</li>
+      <li><strong>Tolerancia cero ante el odio:</strong> no se tolera ningún discurso de odio, supremacismo, deshumanización o estigmatización de ninguna persona o colectivo.</li>
+    </ul>
+
+    <h2>5. Conductas prohibidas</h2>
+    <p>Al utilizar Aréte, te comprometes a <strong>NO</strong> publicar, compartir ni transmitir:</p>
+    <ul>
+      <li>Discursos de odio, agresiones verbales, racismo, xenofobia, homofobia, misoginia, misantropía o cualquier degradación o discriminación por motivos de raza, etnia, religión, género, orientación sexual o condición personal.</li>
+      <li>Acoso, intimidación, amenazas, calumnias o persecución hacia otros usuarios.</li>
+      <li>Contenido sexualmente explícito, pornografía o desnudez.</li>
+      <li><strong>Material de abuso o explotación sexual infantil (CSAM / CSAE):</strong> pornografía infantil, insinuaciones, acoso o captación de menores (grooming), sextorsión o cualquier daño a menores de edad. Mantenemos <strong>tolerancia cero absoluta</strong>. Consulta nuestros <a href="#seguridad-infantil">Estándares de Seguridad Infantil</a>.</li>
+      <li>Incitación a la violencia, actividades delictivas o autolesión.</li>
+      <li>Suplantación de identidad, estafas, fraude o difusión de spam.</li>
+      <li>Contenido que infrinja derechos de propiedad intelectual de terceros.</li>
+      <li>Código malicioso, virus o cualquier elemento que comprometa la seguridad de la App o de otros usuarios.</li>
+    </ul>
+
+    <h2>6. Herramientas de protección: Reportar y Bloquear</h2>
+    <p>Aréte proporciona herramientas integradas para tu protección:</p>
+    <ul>
+      <li><strong>Reportar (🚩):</strong> disponible en cualquier perfil, mensaje directo o publicación de mural. Permite denunciar contenido que infrinja estas normas.</li>
+      <li><strong>Bloquear (🚫):</strong> disponible en perfiles y conversaciones. Al bloquear a un usuario, cesa de inmediato toda comunicación, ocultando su posición en el radar y los perfiles mutuos.</li>
+    </ul>
+
+    <h2>7. Moderación y plazo de respuesta</h2>
+    <p>Todo reporte enviado es evaluado por nuestro equipo en un <strong>plazo no mayor a 24 horas</strong>. Las infracciones a estas normas conllevan:</p>
+    <ul>
+      <li>La eliminación expedita del contenido infractor.</li>
+      <li>Advertencia formal al usuario infractor.</li>
+      <li>Suspensión temporal o expulsión permanente de la cuenta infractora en casos graves o reiterados.</li>
+    </ul>
+
+    <h2>8. Licencia y Software Libre</h2>
+    <p>Aréte es Software Libre y de Código Abierto distribuido bajo la licencia <strong>GNU General Public License v3.0 (GNU GPL-3.0)</strong>. Eres libre de usar, estudiar, modificar y redistribuir la aplicación y su código fuente con arreglo a las libertades garantizadas por la Free Software Foundation.</p>
+    <p>El contenido que tú creas o publicas (textos, notas de voz, avatar) te pertenece en su totalidad. Aréte no reclama ningún derecho de propiedad sobre tus comunicaciones locales.</p>
+
+    <h2>9. Privacidad y seguridad de datos</h2>
+    <p>El tratamiento de tus datos personales se rige por nuestra <a href="#inicio">Política de Privacidad</a>, que forma parte integral de estos Términos. Los chats privados utilizan cifrado de extremo a extremo (E2EE) y almacenamiento local protegido.</p>
+
+    <h2>10. Eliminación de cuenta</h2>
+    <p>Puedes eliminar tu cuenta en cualquier momento desde <strong>Perfil → Ajustes → Eliminar cuenta y datos</strong>. La eliminación de la cuenta conlleva el borrado definitivo e inmediato de todos tus datos personales en la base de datos local de tu dispositivo.</p>
+
+    <h2>11. Limitación de responsabilidad y encuentros presenciales</h2>
+    <p>Aréte se proporciona «tal cual» («as is»). No garantizamos disponibilidad ininterrumpida ni ausencia total de errores. En ningún caso el desarrollador será responsable por daños indirectos, incidentales o consecuentes derivados del uso o imposibilidad de uso de la App, en la medida en que lo permita la legislación aplicable.</p>
+    <p><strong>Encuentros en el mundo real y eventos:</strong> Aréte es exclusivamente una plataforma tecnológica de contacto y radar de proximidad. Aréte <strong>NO organiza, avala, supervisa ni garantiza la seguridad de ningún encuentro presencial, cita o evento físico</strong> entre usuarios. Cualquier interacción fuera de la App o asistencia a eventos ocurre bajo la <strong>entera y exclusiva responsabilidad</strong> de los usuarios participantes. El desarrollador queda totalmente exonerado de cualquier daño, disputa o incidente derivado de conductas personales entre usuarios fuera de la aplicación.</p>
+
+    <h2>12. Modificaciones a los Términos</h2>
+    <p>Podemos actualizar estos Términos en cualquier momento. Te notificaremos los cambios relevantes mediante un aviso dentro de la App o por correo electrónico. El uso continuado de la App tras la notificación implica la aceptación de los nuevos Términos.</p>
+
+    <h2>13. Ley aplicable y jurisdicción</h2>
+    <p>Estos Términos se rigen por las leyes de la <strong>República de Colombia</strong>. Cualquier controversia será sometida a la jurisdicción de los tribunales competentes de la ciudad de Cali, Colombia, salvo que la normativa aplicable imponga otra jurisdicción.</p>
+
+    <h2>14. Contacto</h2>
+    <div class="card-box" style="margin: 16px 0;">
+      <p style="margin: 4px 0;"><strong>Proyecto:</strong> Comunidad Aréte Open Source</p>
+      <p style="margin: 4px 0;"><strong>Correo electrónico:</strong> <a href="mailto:politicaarete@gmail.com">politicaarete@gmail.com</a></p>
+      <p style="margin: 4px 0;"><strong>Repositorio:</strong> Código abierto para Android (F-Droid)</p>
+    </div>
+
+    <a href="#inicio" class="top-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+      Volver al inicio
+    </a>
+  </article>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SECCIÓN 3: ESTÁNDARES DE SEGURIDAD INFANTIL (CSAM / CSAE)
+       Protección Legal, Ética y Comunitaria
+       ═══════════════════════════════════════════════════════ -->
+  <article id="seguridad-infantil" style="margin-top: 48px; border-top: 3px solid #d92338; padding-top: 32px;">
+    <div class="doc-header" style="margin-bottom: 32px;">
+      <div class="brand-row">
+        <img src="icono.png" alt="Aréte Logo" class="brand-logo" onerror="this.style.display='none'">
+        <div>
+          <h1 class="doc-title" style="color: #d92338;">Estándares de Seguridad Infantil</h1>
+          <p class="doc-subtitle">Aréte · Protección contra el Abuso Sexual Infantil (CSAM / CSAE)</p>
+        </div>
+      </div>
+      <div class="meta-grid">
+        <div class="meta-item"><span class="meta-label">Versión</span><span class="meta-value">3.0</span></div>
+        <div class="meta-item"><span class="meta-label">Vigencia</span><span class="meta-value">22 de noviembre de 2026</span></div>
+        <div class="meta-item"><span class="meta-label">Responsable</span><span class="meta-value">Comité de Seguridad y Convivencia Aréte</span></div>
+        <div class="meta-item"><span class="meta-label">Contacto Denuncias</span><span class="meta-value"><a href="mailto:politicaarete@gmail.com?subject=DENUNCIA%20CSAM%20/%20SEGURIDAD%20INFANTIL">politicaarete@gmail.com</a></span></div>
+      </div>
+    </div>
+
+    <div class="card-box" style="background: rgba(217, 35, 56, 0.08); border-left: 5px solid #d92338; margin-bottom: 24px; padding: 18px;">
+      <p style="font-size: 1rem; color: var(--texto); line-height: 1.6;">
+        <strong>🚨 DECLARACIÓN DE TOLERANCIA CERO ANTE EL ABUSO Y EXPLOTACIÓN SEXUAL INFANTIL:</strong><br>
+        En <strong>Aréte</strong> mantenemos una política incondicional e intransigente de <strong>tolerancia cero</strong> hacia cualquier forma de Material de Abuso Sexual Infantil (CSAM, por sus siglas en inglés) y de Explotación y Abuso Sexual Infantil (CSAE). Ninguna conducta que vulnere, amenace o cosifique a niños, niñas o adolescentes tiene cabida en nuestra plataforma bajo ninguna circunstancia.
+      </p>
+    </div>
+
+    <h2>1. Propósito y marco normativo</h2>
+    <p>Estos estándares de seguridad infantil se publican en cumplimiento estricto de las leyes de la República de Colombia (Ley 1098 de 2006 — Código de la Infancia y la Adolescencia, Ley 679 de 2001 y Ley 1336 de 2009 para la prevención y combate de la explotación y pornografía infantil), estándares internacionales de protección de los derechos de la niñez y normas de convivencia ética en redes comunitarias.</p>
+
+    <h2>2. Definiciones y conductas estrictamente prohibidas</h2>
+    <p>Queda terminantemente prohibido a cualquier persona usuaria crear, cargar, publicar, enviar por mensajes directos, almacenar, enlazar o solicitar:</p>
+    <ul>
+      <li><strong>Material de Abuso Sexual Infantil (CSAM):</strong> Cualquier representación visual, fotografía, video, animación, renderizado por inteligencia artificial o archivo digital que muestre a personas menores de 18 años involucradas en conductas explícitamente sexuales, eróticas o de desnudez lasciva.</li>
+      <li><strong>Explotación y Abuso Sexual Infantil (CSAE):</strong> Cualquier interacción dirigida a vulnerar la indemnidad o integridad sexual de un menor, incluyendo de forma expresa:
+        <ul>
+          <li><strong>Captación de menores en línea (Grooming):</strong> Cualquier intento deliberado de ganarse la confianza de un menor para facilitar actos sexuales, encuentros o intercambio de material íntimo.</li>
+          <li><strong>Sextorsión infantil:</strong> Amenazar, coaccionar o chantajear a menores o a sus familias con publicar imágenes íntimas o exigirles material visual de contenido sexual.</li>
+          <li><strong>Solicitud o insinuación sexual:</strong> Requerir fotografías, videos íntimos, conversaciones sexuales o insinuaciones dirigidas a personas menores de edad.</li>
+          <li><strong>Facilitación de encuentros sexuales con menores:</strong> Utilizar el radar, el mapa o los chats para concertar citas presenciales con menores para fines de explotación o comercio sexual.</li>
+          <li><strong>Apología o promoción de la pedofilia / pederastia:</strong> Cualquier manifestación que justifique, defienda, normalice o promueva el abuso sexual hacia menores de edad.</li>
+        </ul>
+      </li>
+    </ul>
+
+    <h2>3. Restricción absoluta de edad (+18 años)</h2>
+    <p>Aréte está diseñada exclusivamente para personas <strong>mayores de 18 años (18 años cumplidos en adelante)</strong>. Declaras cumplir este requisito legal al registrarte. No está permitido el acceso ni la creación de perfiles por parte de menores de edad. Si se detecta cualquier perfil perteneciente a un menor, la cuenta será clausurada de manera inmediata y sus datos serán purgados de forma permanente.</p>
+
+    <h2>4. Mecanismos para denunciar y reportar</h2>
+    <p>Aréte ofrece mecanismos accesibles, confidenciales e inmediatos para reportar cualquier vulneración a estos estándares:</p>
+
+    <div class="card-list">
+      <div class="card-box" style="border-top: 3px solid #d92338;">
+        <h4>📱 Denuncia dentro de la App (In-App)</h4>
+        <p>En cualquier momento, pulsa el icono de bandera <strong>🚩 Reportar</strong> presente en el perfil del usuario, en cualquier mensaje de chat o en publicaciones de murales, y selecciona el motivo específico <strong>«Abuso infantil / CSAM»</strong>. Este reporte entra directamente en cola de investigación prioritaria inmediata.</p>
+      </div>
+
+      <div class="card-box" style="border-top: 3px solid #d92338;">
+        <h4>✉️ Canal directo de denuncias web</h4>
+        <p>Puedes denunciar formalmente enviando un correo al equipo de seguridad con el asunto prioritario <code>[DENUNCIA CSAM]</code>:</p>
+        <p style="margin-top: 8px;">
+          <a href="mailto:politicaarete@gmail.com?subject=DENUNCIA%20CSAM%20/%20SEGURIDAD%20INFANTIL&body=Por%20favor%20indica%20los%20detalles%20de%20la%20denuncia%3A%0A-%20Nombre%20de%20usuario%20o%20perfil%20infractor%3A%0A-%20Descripci%C3%B3n%20del%20hecho%3A%0A-%20Fecha%20u%20hora%20aproximada%3A%0A-%20Capturas%20o%20enlaces%20si%20los%20hay%3A" class="top-btn" style="background: #941b2c; color: white; border-color: #941b2c; font-weight: bold;">
+            🚨 Enviar Denuncia por Correo
+          </a>
+        </p>
+      </div>
+    </div>
+
+    <h3>Organismos externos y líneas de ayuda oficiales</h3>
+    <p>Si eres testigo de una situación de explotación infantil o posesión de CSAM, te instamos a interponer la denuncia ante las autoridades de protección a la niñez:</p>
+    <ul>
+      <li><strong>NCMEC (National Center for Missing & Exploited Children):</strong> Centro internacional de referencia para denunciar material de abuso infantil. Reportes en línea: <a href="https://report.cybertip.org" target="_blank" rel="noopener">report.cybertip.org</a> o línea telefónica CyberTipline: <strong>1-800-843-5678</strong> (disponible 24/7).</li>
+      <li><strong>Te Protejo (Colombia):</strong> Canal público para denunciar explotación y abuso infantil en internet. Página web: <a href="https://teprotejo.org" target="_blank" rel="noopener">teprotejo.org</a> y app móvil <em>Te Protejo</em>.</li>
+      <li><strong>CAI Virtual de la Policía Nacional de Colombia:</strong> Centro Cibernético Policial para delitos informáticos y abuso de menores: <a href="https://caivirtual.policia.gov.co" target="_blank" rel="noopener">caivirtual.policia.gov.co</a> o líneas de emergencia <strong>123</strong> y <strong>165</strong>.</li>
+      <li><strong>Línea 141 del ICBF (Colombia):</strong> Línea nacional gratuita del Instituto Colombiano de Bienestar Familiar para denuncias de vulneración de derechos de niños, niñas y adolescentes.</li>
+      <li><strong>Internet Watch Foundation (IWF):</strong> Portal internacional para el reporte confidencial y anónimo de URLs con CSAM: <a href="https://report.iwf.org.uk" target="_blank" rel="noopener">report.iwf.org.uk</a>.</li>
+    </ul>
+
+    <h2>5. Protocolo de actuación, moderación y tiempos de respuesta</h2>
+    <p>Ante la recepción de cualquier denuncia o alerta de seguridad infantil, Aréte ejecuta el siguiente protocolo estricto:</p>
+    <ol>
+      <li><strong>Atención prioritaria inmediata (&lt; 24 horas):</strong> Las denuncias con motivo de abuso infantil no están sujetas a colas ordinarias; se examinan con máxima prioridad dentro de las primeras horas de recepción.</li>
+      <li><strong>Remoción expedita del contenido:</strong> Si se confirma la existencia de material prohibido, se elimina de manera irreversible e inmediata de todas las bases de datos y memorias intermedias.</li>
+      <li><strong>Baneo y expulsión definitiva:</strong> La cuenta responsable es cancelada permanentemente, bloqueando de forma irreversible sus claves de sesión e identificadores técnicos para impedir cualquier reingreso.</li>
+      <li><strong>Preservación de evidencia forense:</strong> Se preservan los registros técnicos indispensables conforme a los protocolos legales de cadena de custodia digital.</li>
+      <li><strong>Denuncia penal obligatoria ante las autoridades:</strong> Notificamos inmediatamente a la Fiscalía General de la Nación de Colombia, a la Policía Judicial y remitimos el reporte al NCMEC para las investigaciones criminales correspondientes.</li>
+    </ol>
+
+    <h2>6. Punto de contacto designado para seguridad infantil</h2>
+    <div class="card-box" style="margin: 16px 0;">
+      <p style="margin: 4px 0;"><strong>Equipo Responsable de Seguridad Infantil:</strong> Proyecto Aréte</p>
+      <p style="margin: 4px 0;"><strong>Correo exclusivo de reportes CSAM:</strong> <a href="mailto:politicaarete@gmail.com?subject=DENUNCIA%20CSAM%20/%20SEGURIDAD%20INFANTIL">politicaarete@gmail.com</a> (Asunto: <code>[DENUNCIA CSAM]</code>)</p>
+      <p style="margin: 4px 0;"><strong>Canal:</strong> Repositorio Comunitario Libre y Descentralizado</p>
+    </div>
+
+    <a href="#inicio" class="top-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+      Volver al inicio
+    </a>
+  </article>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>Aréte</strong> · Red Social Local y Privada para Android.<br>
+    Desarrollado como Software Libre bajo licencia GNU GPL-3.0 por la Comunidad del Proyecto Aréte.<br>
+    Última actualización: 22 de noviembre de 2026.</p>
+  </div>
+</footer>
+
+</body>
+</html>

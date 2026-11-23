@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Reglas de extracción de datos (Android 12+ / API 31+).
+   Controla respaldos en la nube y transferencias directas de dispositivo a dispositivo.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="antired_crypto_keystore.xml" />
+        <exclude domain="sharedpref" path="antired_crypto_keystore_enc.xml" />
+        <exclude domain="sharedpref" path="antired_crypto_identity.xml" />
+        <exclude domain="sharedpref" path="antired_crypto_identity_enc.xml" />
+        <exclude domain="sharedpref" path="antired_pines.xml" />
+        <exclude domain="sharedpref" path="antired_pines_cifrado.xml" />
+        <exclude domain="sharedpref" path="antired_identity_v1_prefs.xml" />
+        <exclude domain="sharedpref" path="antired_identity_v1_secure_prefs.xml" />
+        <exclude domain="sharedpref" path="antired_sesion_local_prefs.xml" />
+        <exclude domain="file" path="crypto" />
+        <exclude domain="database" path="antired_outbox.db" />
+        <exclude domain="database" path="antired_outbox.db-wal" />
+        <exclude domain="database" path="antired_outbox.db-shm" />
+        <exclude domain="database" path="antired_local_db" />
+        <exclude domain="database" path="antired_local_db-wal" />
+        <exclude domain="database" path="antired_local_db-shm" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="antired_crypto_keystore.xml" />
+        <exclude domain="sharedpref" path="antired_crypto_keystore_enc.xml" />
+        <exclude domain="sharedpref" path="antired_crypto_identity.xml" />
+        <exclude domain="sharedpref" path="antired_crypto_identity_enc.xml" />
+        <exclude domain="sharedpref" path="antired_pines.xml" />
+        <exclude domain="sharedpref" path="antired_pines_cifrado.xml" />
+        <exclude domain="sharedpref" path="antired_identity_v1_prefs.xml" />
+        <exclude domain="sharedpref" path="antired_identity_v1_secure_prefs.xml" />
+        <exclude domain="sharedpref" path="antired_sesion_local_prefs.xml" />
+        <exclude domain="file" path="crypto" />
+        <exclude domain="database" path="antired_outbox.db" />
+        <exclude domain="database" path="antired_outbox.db-wal" />
+        <exclude domain="database" path="antired_outbox.db-shm" />
+        <exclude domain="database" path="antired_local_db" />
+        <exclude domain="database" path="antired_local_db-wal" />
+        <exclude domain="database" path="antired_local_db-shm" />
+    </device-transfer>
+</data-extraction-rules>

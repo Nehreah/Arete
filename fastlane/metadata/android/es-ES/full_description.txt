@@ -1,0 +1,10 @@
+Aréte es una red social y aplicación de mensajería táctica descentralizada, diseñada para operar 100% de forma local y offline mediante redes ad-hoc (mallas Bluetooth Low Energy, Bluetooth Classic y Wi-Fi LAN/Direct).
+
+Características principales:
+• 100% Local y Descentralizada: Funciona sin depender de servidores centrales ni servicios externos. Tus datos se quedan en tu dispositivo.
+• Mensajería en Malla P2P: Envía y recibe mensajes entre dispositivos cercanos saltando de nodo en nodo, ideal para situaciones de emergencia, eventos locales o zonas sin cobertura.
+• Cifrado Extremo a Extremo (E2EE): Protección criptográfica mediante curvas elípticas (ECDH P-256 + AES-256-GCM) y firmas digitales ECDSA.
+• Radar Táctico y Encuentros: Descubre personas, salas y eventos cercanos en tu localidad con GPS nativo respetuoso con la privacidad.
+• Salas y Cartas: Comunícate en canales grupales o envía cartas personales a tus amistades.
+• Michi (Mascota Local): Un compañero virtual que vive en tu teléfono sin requerir IA externa ni consumir datos en la nube.
+• Software Libre: Licenciado bajo la GNU General Public License v3.0 (GPL-3.0), sin componentes propietarios ni rastreadores.
