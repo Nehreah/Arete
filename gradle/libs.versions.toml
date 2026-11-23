@@ -17,11 +17,11 @@ kotlinxCoroutines = "1.11.0"
 osmdroid = "6.1.20"
 navigationCompose = "2.10.2"
 # Librerías de testing adicionales
-mockkVersion = "1.14.11"
+mockkVersion = "1.14.12"
 turbine = "1.2.1"
 robolectric = "4.17"
 foundationLayout = "1.12.1"
-room = "2.8.4"
+room = "2.8.5"
 
 [libraries]
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }
@@ -64,4 +64,4 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-ksp = { id = "com.google.devtools.ksp", version = "2.3.6" }
+ksp = { id = "com.google.devtools.ksp", version = "2.3.14" }
