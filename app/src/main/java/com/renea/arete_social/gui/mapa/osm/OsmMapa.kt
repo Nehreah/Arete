@@ -70,6 +70,7 @@ fun OsmMapa(
     val alClickMapa by rememberUpdatedState(onClickMapa)
     val iconos = remember(contexto) { IconosMapa(contexto) }
     val holgura = remember(contexto) { ViewConfiguration.get(contexto).scaledTouchSlop.toFloat() }
+    val proveedorAplicado = remember { arrayOfNulls<ProveedorTeselas>(1) }
     val temaAplicado = remember { arrayOfNulls<TemaMapa>(1) }
 
     val mapView = remember(contexto) {
@@ -139,8 +140,9 @@ fun OsmMapa(
         factory = { mapView },
         onRelease = { mv -> mv.onDetach() },
         update = { mv ->
-            if (temaAplicado[0] != tema) {
+            if (temaAplicado[0] != tema || proveedorAplicado[0] != proveedor) {
                 temaAplicado[0] = tema
+                proveedorAplicado[0] = proveedor
                 aplicarTema(mv, proveedor, tema)
             }
             conciliador.alClickMarcador = onClickMarcador

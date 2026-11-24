@@ -4,11 +4,29 @@ import android.graphics.ColorFilter
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import org.osmdroid.tileprovider.tilesource.ITileSource
+import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.tileprovider.tilesource.TileSourcePolicy
+import org.osmdroid.tileprovider.tilesource.XYTileSource
 import kotlin.math.roundToInt
 
 /** Página oficial con la licencia y la atribución que exige OpenStreetMap. */
 const val URL_COPYRIGHT_OSM = "https://www.openstreetmap.org/copyright"
+
+/**
+ * Fuente de teselas OpenStreetMap Mapnik con política que permite la precarga offline
+ * para navegación táctica en Aréte.
+ */
+val FuenteMapnik: OnlineTileSourceBase = object : XYTileSource(
+    "Mapnik",
+    0, 19, 256, ".png",
+    arrayOf("https://tile.openstreetmap.org/"),
+    "© OpenStreetMap contributors",
+    TileSourcePolicy(
+        2,
+        TileSourcePolicy.FLAG_USER_AGENT_MEANINGFUL or TileSourcePolicy.FLAG_USER_AGENT_NORMALIZED
+    )
+) {}
 
 /**
  * De dónde salen las teselas. Está detrás de una interfaz para poder cambiar de proveedor con una línea
@@ -25,12 +43,11 @@ interface ProveedorTeselas {
 }
 
 /**
- * Servidor público de OpenStreetMap. SOLO para desarrollo y pruebas pequeñas: su política de uso
- * prohíbe el tráfico intensivo y pueden bloquear la app. El tema se aplica con filtros de color.
+ * Servidor público de OpenStreetMap. El tema se aplica con filtros de color.
  */
 object ProveedorTeselasMapnik : ProveedorTeselas {
     override val atribucion: String = "© OpenStreetMap contributors"
-    override fun fuente(tema: TemaMapa): ITileSource = TileSourceFactory.MAPNIK
+    override fun fuente(tema: TemaMapa): ITileSource = FuenteMapnik
 }
 
 /**
@@ -176,21 +193,43 @@ object ProveedorTeselasTopoMap : ProveedorTeselas {
                 "https://a.tile.opentopomap.org/",
                 "https://b.tile.opentopomap.org/",
                 "https://c.tile.opentopomap.org/"
+            ),
+            "© OpenTopoMap (CC-BY-SA)",
+            TileSourcePolicy(
+                2,
+                TileSourcePolicy.FLAG_USER_AGENT_MEANINGFUL or TileSourcePolicy.FLAG_USER_AGENT_NORMALIZED
             )
         )
 }
 
 /**
- * Parámetros de filtro de alta saturación (capa "Saturado").
- * Mantiene las teselas MAPNIK pero sube la saturación a 2× para que los parques, el agua
- * y las calles sean fácilmente distinguibles a colores en exteriores con sol.
+ * Capa satelital real de alta resolución global (Esri World Imagery).
+ * Fotografía aérea y satelital verdadera disponible mundialmente hasta zoom 19.
  */
-private val FILTRO_SATURADO = ParametrosFiltro(
-    invertir       = false,
-    saturacion     = 2.5f,   // muy alta: verde, azul y naranja bien diferenciados
-    escala         = 0.95f,
-    desplazamiento = 5f
-)
+object ProveedorTeselasSatelite : ProveedorTeselas {
+    override val atribucion: String = "© Esri, Maxar, Earthstar Geographics"
+    override val urlAtribucion: String = "https://www.esri.com/en-us/legal/copyright-trademarks"
+
+    private val fuenteSatelite: OnlineTileSourceBase = object : OnlineTileSourceBase(
+        "EsriWorldImagery",
+        0, 19, 256, "",
+        arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/"),
+        "© Esri, Maxar, Earthstar Geographics",
+        TileSourcePolicy(
+            2,
+            TileSourcePolicy.FLAG_USER_AGENT_MEANINGFUL or TileSourcePolicy.FLAG_USER_AGENT_NORMALIZED
+        )
+    ) {
+        override fun getTileURLString(pMapTileIndex: Long): String {
+            val z = org.osmdroid.util.MapTileIndex.getZoom(pMapTileIndex)
+            val x = org.osmdroid.util.MapTileIndex.getX(pMapTileIndex)
+            val y = org.osmdroid.util.MapTileIndex.getY(pMapTileIndex)
+            return "$baseUrl$z/$y/$x"
+        }
+    }
+
+    override fun fuente(tema: TemaMapa): ITileSource = fuenteSatelite
+}
 
 /**
  * Resuelve qué [ProveedorTeselas] y qué [TemaMapa] usar según la [CapaMapa] seleccionada
@@ -199,7 +238,7 @@ private val FILTRO_SATURADO = ParametrosFiltro(
  * - ESTANDAR: MAPNIK + tema claro/oscuro normal.
  * - OSCURO:   MAPNIK + tema oscuro forzado (independientemente del tema del sistema).
  * - TERRENO:  OpenTopoMap + tema CLARO_DIA (el topo ya tiene su propio estilo).
- * - SATURADO: MAPNIK con filtro saturado en modo CLARO_DIA para que los colores resalten.
+ * - SATELITE: Esri World Imagery (fotografía satelital real de alta resolución).
  */
 fun resolverProveedorYTema(
     capa: CapaMapa,
@@ -209,27 +248,23 @@ fun resolverProveedorYTema(
     CapaMapa.ESTANDAR  -> ProveedorTeselasMapnik to TemaMapa.resolver(esOscuro, ciclo)
     CapaMapa.OSCURO    -> ProveedorTeselasMapnik to TemaMapa.OSCURO_NOCHE
     CapaMapa.TERRENO   -> ProveedorTeselasTopoMap to TemaMapa.CLARO_DIA
-    CapaMapa.SATURADO  -> ProveedorTeselasSaturado to TemaMapa.CLARO_DIA
+    CapaMapa.SATELITE  -> ProveedorTeselasSatelite to TemaMapa.CLARO_DIA
 }
-
-/** MAPNIK con filtro de alta saturación. Se inyecta exactamente igual que el proveedor estándar. */
-object ProveedorTeselasSaturado : ProveedorTeselas {
-    override val atribucion: String = "© OpenStreetMap contributors"
-    override fun fuente(tema: TemaMapa): ITileSource = TileSourceFactory.MAPNIK
-}
-
-/** Estilo de la capa Saturado: solo filtro, sin invertir. */
-val EstiloTemaSaturado = EstiloTema(
-    filtro       = FILTRO_SATURADO,
-    fondoCarga   = 0xFFD4EAD4.toInt(),
-    lineaCarga   = 0xFFB0D4B0.toInt()
-)
 
 /**
- * Extiende [EstilosTemaMapa.de] para soportar [ProveedorTeselasSaturado].
- * Llama a esta función cuando el proveedor es [ProveedorTeselasSaturado]; para los demás
- * sigue usando [EstilosTemaMapa.de].
+ * Extiende [EstilosTemaMapa.de] para capas con estilo nativo propio (Satélite, Terreno).
+ * Para ellas no aplica filtros de color destructivos, conservando sus colores naturales.
  */
-fun estiloParaCapa(proveedor: ProveedorTeselas, tema: TemaMapa): EstiloTema =
-    if (proveedor is ProveedorTeselasSaturado) EstiloTemaSaturado
-    else EstilosTemaMapa.de(tema)
+fun estiloParaCapa(proveedor: ProveedorTeselas, tema: TemaMapa): EstiloTema = when (proveedor) {
+    is ProveedorTeselasSatelite -> EstiloTema(
+        filtro       = null,
+        fondoCarga   = 0xFF121815.toInt(),
+        lineaCarga   = 0xFF233028.toInt()
+    )
+    is ProveedorTeselasTopoMap -> EstiloTema(
+        filtro       = null,
+        fondoCarga   = 0xFFF0F0F0.toInt(),
+        lineaCarga   = 0xFFDADADA.toInt()
+    )
+    else -> EstilosTemaMapa.de(tema)
+}

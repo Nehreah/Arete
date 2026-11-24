@@ -1,7 +1,14 @@
 package com.renea.arete_social.gui.mapa
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.view.WindowManager
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,6 +16,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -25,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,6 +49,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -172,6 +185,8 @@ fun ContenidoRadar(
 
     var modoAgregarLugar by remember { mutableStateOf(false) }
     var panelMapaActivo by remember { mutableStateOf<String?>(null) }
+    // Chat de Sala general ampliado: la pantalla se divide (mitad superior chat, mitad inferior mapa).
+    var chatAmpliado by remember { mutableStateOf(false) }
     var obraPergaminoSeleccionada by remember { mutableStateOf<com.renea.arete_social.domain.model.ObraLibreria?>(null) }
     var camaraCentradaEnUsuario by remember { mutableStateOf(true) }
     var posicionInicialFijada by remember { mutableStateOf(false) }
@@ -310,457 +325,333 @@ fun ContenidoRadar(
         estado.ubicacionPropia?.let { PuntoMapa(it.latitud, it.longitud, it.precisionMetros) }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        OsmMapa(
-            estadoCamara = estadoCamara,
-            tema = temaMapa,
-            proveedor = proveedorMapa,
-            modifier = Modifier.fillMaxSize(),
-            marcadores = marcadoresMapa,
-            lineas = lineasMapa,
-            ubicacionPropia = ubicacionPropiaMapa,
-            onClickMapa = { posicion ->
-                if (modoAgregarLugar) {
-                    onAbrirPantallaSecundaria(
-                        PantallaSecundaria.CrearLugarEn(
-                            Ubicacion(posicion.latitud, posicion.longitud, System.currentTimeMillis())
-                        )
+    // ─── Sala general en el mapa ──────────────────────────────────────────────
+    // El ViewModel se crea aquí (no dentro del panel) para que el chat flotante y el ampliado
+    // compartan exactamente el mismo estado.
+    val chatGeneralVm: ChatViewModel? = if (panelMapaActivo == "salas") {
+        viewModel<ChatViewModel>(
+            key = "mapa_chat_general_$usuarioIdActual",
+            factory = viewModelFactory {
+                initializer {
+                    ChatViewModel(
+                        contenedor.mensajes,
+                        contenedor.repositorioUsuarios,
+                        contenedor.cifradorE2ee,
+                        ID_CHAT_GENERAL,
+                        usuarioIdActual,
+                        contenedor.gestorLlamadas,
+                        contenedor.messageRouter,
+                        resolverPerfiles = contenedor.resolverPerfiles,
+                        resolverIdentidad = contenedor.resolverIdentidad
                     )
-                    modoAgregarLugar = false
                 }
-            },
-            onClickMarcador = { id ->
-                when {
-                    id.startsWith("lugar:") ->
-                        onAbrirPantallaSecundaria(PantallaSecundaria.VerLugar(id.removePrefix("lugar:")))
-                    id.startsWith("evento:") ->
-                        onAbrirPantallaSecundaria(PantallaSecundaria.VerEvento(id.removePrefix("evento:")))
-                }
-            },
-            mostrarDialogoDescarga = mostrarDialogoDescarga,
-            onCerrarDialogoDescarga = { mostrarDialogoDescarga = false }
+            }
         )
+    } else null
 
-        // Mimis: hasta 14 gatitos que deambulan por el mapa (posiciones ficticias, nunca el GPS).
-        // El listado completo sigue en el panel "Cercanos".
-        if (!modoAgregarLugar && seleccionEvento == null) {
-            CapaMimisMapa(
-                estadoCamara = estadoCamara,
-                personasCercanas = estado.personasCercanas,
-                usuarioIdPropio = usuarioIdActual,
-                onVerPerfil = { id -> onAbrirPantallaSecundaria(PantallaSecundaria.VerPerfil(id)) },
-                onEscribir = { id, nombre ->
-                    onAbrirPantallaSecundaria(PantallaSecundaria.AbrirChatConUsuario(id, "Chat: $nombre"))
-                },
-                onEnviarChispa = { id, nombre -> enviarRegalo(id, nombre, TipoRegalo.CHISPA) },
-                onEnviarMedicina = { id, nombre -> enviarRegalo(id, nombre, TipoRegalo.MEDICINA) },
-                onSolicitarSincronizacion = { id ->
-                    scopeRegalos.launch {
-                        val enviado = contenedor.gestorPasesBle.solicitarSincronizacion(id)
-                        Toast.makeText(
-                            contextoRegalos,
-                            if (enviado) "Solicitud de sincronización enviada" else "No se pudo enviar la solicitud. Acércate e inténtalo de nuevo.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                },
-                onResponderEstado = responderEstado,
-                obrasPorAutor = remember(estado.obrasCercanasMapa) {
-                    estado.obrasCercanasMapa.groupBy { it.autorId }.mapValues { (_, lista) ->
-                        lista.maxByOrNull { it.compartidaMapaEn ?: 0L }!!
-                    }
-                },
-                onAbrirObra = { obra ->
-                    scopeRegalos.launch {
-                        runCatching {
-                            contenedor.libreria.registrarLecturaObra(obra.id, obra.autorId, usuarioIdActual)
-                        }
-                    }
-                },
-                amigoEncuentro = sesionEncuentro?.takeIf { encuentroActivo },
-                modifier = Modifier.fillMaxSize()
-            )
-        }
+    // Al cerrar Sala general el chat vuelve a su tamaño normal.
+    LaunchedEffect(panelMapaActivo) {
+        if (panelMapaActivo != "salas") chatAmpliado = false
+    }
+    val chatAmpliadoVisible = chatAmpliado && panelMapaActivo == "salas" && seleccionEvento == null
+    // Atrás primero encoge el chat ampliado; después actúa la navegación normal.
+    BackHandler(enabled = chatAmpliadoVisible) { chatAmpliado = false }
+    // Reparto de la altura: 0 = solo mapa; 1 = mitad chat / mitad mapa (con transición suave).
+    val pesoChat by animateFloatAsState(
+        targetValue = if (chatAmpliadoVisible) 1f else 0f,
+        animationSpec = tween(280),
+        label = "peso_chat_ampliado"
+    )
+    // En Sala general el teclado NO debe empujar ni redimensionar nada de esta pantalla.
+    if (panelMapaActivo == "salas") SinReajusteDeTeclado()
 
-        if (modoAgregarLugar) {
-            Box(
+    Column(modifier = modifier.fillMaxSize().consumeWindowInsets(WindowInsets.ime)) {
+        // Mitad superior: chat ampliado de Sala general.
+        if (chatGeneralVm != null && (chatAmpliadoVisible || pesoChat > 0.02f)) {
+            PanelChatGeneral(
+                viewModel = chatGeneralVm,
+                contenedor = contenedor,
+                ampliado = true,
+                onAlternarAmpliado = { chatAmpliado = false },
+                onCerrar = { panelMapaActivo = null },
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.60f))
-            )
-        }
-
-        if (!modoAgregarLugar && seleccionEvento == null) {
-            RadarHud(modifier = Modifier.fillMaxSize())
-        }
-
-        // Atribución obligatoria de OpenStreetMap (Fase 5): siempre visible, también en los modos de
-        // selección. Queda por debajo de los paneles y botones inferiores (que empiezan a 24 dp).
-        AtribucionMapa(
-            tema = temaMapa,
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 6.dp, bottom = 4.dp)
-        )
-
-        if (seleccionEvento != null) {
-            CapaSeleccionLugarEvento(
-                onSeleccionar = {
-                    val centro = estadoCamara.centro
-                    onConfirmarLugarEvento(Ubicacion(centro.latitud, centro.longitud, System.currentTimeMillis()))
-                },
-                onCancelar = onCancelarSeleccionEvento,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-        // Alerta de GPS / Ubicación del sistema desactivada (Xiaomi / Poco / Samsung / Motorola)
-        if (!gpsHabilitado) {
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 10.dp, start = 70.dp, end = 16.dp)
+                    .weight(pesoChat.coerceAtLeast(0.0001f))
                     .fillMaxWidth()
-                    .clickable {
-                        runCatching {
-                            contexto.startActivity(com.renea.arete_social.util.GestorCompatibilidadFabricantes.crearIntentAjustesUbicacion())
+                    .clipToBounds()
+            )
+        }
+
+        // Mapa y todos sus controles: ocupan todo el alto, o la mitad inferior con el chat ampliado.
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            OsmMapa(
+                estadoCamara = estadoCamara,
+                tema = temaMapa,
+                proveedor = proveedorMapa,
+                modifier = Modifier.fillMaxSize(),
+                marcadores = marcadoresMapa,
+                lineas = lineasMapa,
+                ubicacionPropia = ubicacionPropiaMapa,
+                onClickMapa = { posicion ->
+                    if (modoAgregarLugar) {
+                        onAbrirPantallaSecundaria(
+                            PantallaSecundaria.CrearLugarEn(
+                                Ubicacion(posicion.latitud, posicion.longitud, System.currentTimeMillis())
+                            )
+                        )
+                        modoAgregarLugar = false
+                    }
+                },
+                onClickMarcador = { id ->
+                    when {
+                        id.startsWith("lugar:") ->
+                            onAbrirPantallaSecundaria(PantallaSecundaria.VerLugar(id.removePrefix("lugar:")))
+                        id.startsWith("evento:") ->
+                            onAbrirPantallaSecundaria(PantallaSecundaria.VerEvento(id.removePrefix("evento:")))
+                    }
+                },
+                mostrarDialogoDescarga = mostrarDialogoDescarga,
+                onCerrarDialogoDescarga = { mostrarDialogoDescarga = false }
+            )
+
+            // Mimis: hasta 14 gatitos que deambulan por el mapa (posiciones ficticias, nunca el GPS).
+            // El listado completo sigue en el panel "Cercanos".
+            if (!modoAgregarLugar && seleccionEvento == null) {
+                CapaMimisMapa(
+                    estadoCamara = estadoCamara,
+                    personasCercanas = estado.personasCercanas,
+                    usuarioIdPropio = usuarioIdActual,
+                    onVerPerfil = { id -> onAbrirPantallaSecundaria(PantallaSecundaria.VerPerfil(id)) },
+                    onEscribir = { id, nombre ->
+                        onAbrirPantallaSecundaria(PantallaSecundaria.AbrirChatConUsuario(id, "Chat: $nombre"))
+                    },
+                    onEnviarChispa = { id, nombre -> enviarRegalo(id, nombre, TipoRegalo.CHISPA) },
+                    onEnviarMedicina = { id, nombre -> enviarRegalo(id, nombre, TipoRegalo.MEDICINA) },
+                    onSolicitarSincronizacion = { id ->
+                        scopeRegalos.launch {
+                            val enviado = contenedor.gestorPasesBle.solicitarSincronizacion(id)
+                            Toast.makeText(
+                                contextoRegalos,
+                                if (enviado) "Solicitud de sincronización enviada" else "No se pudo enviar la solicitud. Acércate e inténtalo de nuevo.",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     },
-                color = Color(0xFF2A1B00),
-                shape = RoundedCornerShape(10.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB300))
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("⚠️", fontSize = 15.sp)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Ubicación (GPS) apagada en el móvil",
-                            color = Color(0xFFFFB300),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "En Xiaomi y Samsung el radar BLE no encuentra celulares si el GPS está apagado. Toca para activar.",
-                            color = Color.White.copy(alpha = 0.85f),
-                            fontSize = 10.sp
-                        )
-                    }
-                }
-            }
-        }
-
-        // Cabecera compacta a la izquierda: perfil, marca y accesos rápidos.
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 12.dp, top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(radarColors.panel)
-                    .border(1.dp, radarColors.verde.copy(alpha = 0.55f), CircleShape)
-                    .clickable { onIrMiPerfil() },
-                contentAlignment = Alignment.Center
-            ) {
-                if (fotoPerfilActual != null) {
-                    AsyncImage(
-                        model = fotoPerfilActual,
-                        contentDescription = "Mi perfil",
-                        modifier = Modifier.fillMaxSize().clip(CircleShape)
-                            .clickable { onIrMiPerfil() }
-                    )
-                } else {
-                    Text(
-                        text = nombrePerfilActual.take(1).uppercase().ifBlank { "U" },
-                        color = radarColors.verde,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                }
+                    onResponderEstado = responderEstado,
+                    obrasPorAutor = remember(estado.obrasCercanasMapa) {
+                        estado.obrasCercanasMapa.groupBy { it.autorId }.mapValues { (_, lista) ->
+                            lista.maxByOrNull { it.compartidaMapaEn ?: 0L }!!
+                        }
+                    },
+                    onAbrirObra = { obra ->
+                        scopeRegalos.launch {
+                            runCatching {
+                                contenedor.libreria.registrarLecturaObra(obra.id, obra.autorId, usuarioIdActual)
+                            }
+                        }
+                    },
+                    amigoEncuentro = sesionEncuentro?.takeIf { encuentroActivo },
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
-            Text(
-                text = "Arete",
-                color = radarColors.verdeBrillante,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.2.sp
-            )
-
-            // Los tres accesos quedan debajo del nombre de la aplicación.
-            listOf(
-                "personas" to "◎  Cercanos",
-                "salas" to "▤  Sala general",
-                "libreria" to "📚  Librería"
-            ).forEach { (id, texto) ->
-                val seleccionado = panelMapaActivo == id
+            if (modoAgregarLugar) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(11.dp))
-                        .background(if (seleccionado) radarColors.verde.copy(alpha = 0.28f) else radarColors.panel.copy(alpha = 0.96f))
-                        .border(1.dp, radarColors.verde.copy(alpha = 0.65f), RoundedCornerShape(11.dp))
-                        .clickable { panelMapaActivo = if (seleccionado) null else id }
-                        .padding(horizontal = 11.dp, vertical = 8.dp)
-                ) {
-                    Text(texto, color = radarColors.verdeBrillante, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.60f))
+                )
             }
-        }
 
-        // Panel compacto de personas cercanas.
-        panelMapaActivo?.takeIf { it == "personas" }?.let { panel ->
-            Surface(
+            if (!modoAgregarLugar && seleccionEvento == null) {
+                RadarHud(modifier = Modifier.fillMaxSize())
+            }
+
+            // Atribución obligatoria de OpenStreetMap (Fase 5): siempre visible, también en los modos de
+            // selección. Queda por debajo de los paneles y botones inferiores (que empiezan a 24 dp).
+            AtribucionMapa(
+                tema = temaMapa,
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = 174.dp, end = 20.dp)
-                    .width(278.dp)
-                    .heightIn(max = 350.dp),
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-                tonalElevation = 8.dp,
-                shadowElevation = 12.dp,
-                border = androidx.compose.foundation.BorderStroke(1.dp, radarColors.verde.copy(alpha = 0.55f))
-            ) {
-                Column(modifier = Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "PERSONAS CERCANAS",
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.8.sp
-                            )
-                            Text(
-                                text = "Escríbele o envíale ✦ chispa y 💊 medicina",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 10.sp
-                            )
-                        }
-                        Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable { panelMapaActivo = null }.padding(6.dp))
-                    }
-
-                    if (panel == "personas") {
-                        if (estado.personasCercanas.isEmpty()) {
-                            Text("Todavía no se detectan personas cercanas.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(vertical = 12.dp))
-                        } else {
-                            LazyColumn(modifier = Modifier.heightIn(max = 285.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                items(estado.personasCercanas, key = { it.id }) { persona ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                                            .clickable {
-                                                panelMapaActivo = null
-                                                persona.usuarioId?.let { onAbrirPantallaSecundaria(PantallaSecundaria.AbrirChatConUsuario(it, "Chat: ${persona.nombre}")) }
-                                            }.padding(horizontal = 8.dp, vertical = 10.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        Box(modifier = Modifier.size(34.dp).clip(CircleShape).background(radarColors.verde.copy(alpha = 0.18f)).border(1.dp, radarColors.verde.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
-                                            Text(persona.nombre.take(1).uppercase().ifBlank { "?" }, color = radarColors.verdeBrillante, fontWeight = FontWeight.Bold)
-                                        }
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(persona.nombre, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                            Text(persona.distanciaMetros?.let { "A ${it.toInt()} m" } ?: "Cerca de ti", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
-                                        }
-                                        if (persona.usuarioId != null) {
-                                            Text(
-                                                "✦",
-                                                color = MaterialTheme.colorScheme.primary,
-                                                fontSize = 17.sp,
-                                                modifier = Modifier
-                                                    .clickable { enviarRegalo(persona.usuarioId, persona.nombre, TipoRegalo.CHISPA) }
-                                                    .padding(horizontal = 5.dp, vertical = 4.dp)
-                                            )
-                                            Text(
-                                                "💊",
-                                                fontSize = 15.sp,
-                                                modifier = Modifier
-                                                    .clickable { enviarRegalo(persona.usuarioId, persona.nombre, TipoRegalo.MEDICINA) }
-                                                    .padding(horizontal = 5.dp, vertical = 4.dp)
-                                            )
-                                        }
-                                        Text("✉", color = MaterialTheme.colorScheme.primary, fontSize = 17.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Chat General integrado en el mapa: permanece sobre el mapa y permite leer/escribir.
-        if (panelMapaActivo == "salas") {
-            val chatGeneralVm: ChatViewModel = viewModel(
-                key = "mapa_chat_general_$usuarioIdActual",
-                factory = viewModelFactory {
-                    initializer {
-                        ChatViewModel(
-                            contenedor.mensajes,
-                            contenedor.repositorioUsuarios,
-                            contenedor.cifradorE2ee,
-                            ID_CHAT_GENERAL,
-                            usuarioIdActual,
-                            contenedor.gestorLlamadas,
-                            contenedor.messageRouter,
-                            resolverPerfiles = contenedor.resolverPerfiles,
-                            resolverIdentidad = contenedor.resolverIdentidad
-                        )
-                    }
-                }
+                    .align(Alignment.BottomStart)
+                    .padding(start = 6.dp, bottom = 4.dp)
             )
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = 174.dp, end = 12.dp)
-                    .width(340.dp)
-                    .height(420.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-                tonalElevation = 8.dp,
-                shadowElevation = 14.dp,
-                border = androidx.compose.foundation.BorderStroke(1.dp, radarColors.verde.copy(alpha = 0.65f))
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().background(radarColors.panel).padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("SALA GENERAL", color = radarColors.verdeBrillante, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Text("Chat público · en el mapa", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
-                        }
-                        Text("✕", color = MaterialTheme.colorScheme.onSurface, fontSize = 18.sp,
-                            modifier = Modifier.clickable { panelMapaActivo = null }.padding(start = 12.dp, top = 2.dp, bottom = 2.dp))
-                    }
-                    androidx.compose.material3.HorizontalDivider(color = radarColors.verde.copy(alpha = 0.25f))
-                    ChatScreen(
-                        viewModel = chatGeneralVm,
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        chatId = ID_CHAT_GENERAL,
-                        tituloChat = "Sala General",
-                        gestorLlamadas = contenedor.gestorLlamadas,
-                        onVolverAlMapa = { panelMapaActivo = null },
-                        esVistaHub = false
-                    )
-                }
-            }
-        }
 
-        if (panelMapaActivo == "libreria") {
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = 220.dp, end = 20.dp)
-                    .width(286.dp)
-                    .heightIn(max = 380.dp),
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-                tonalElevation = 8.dp,
-                shadowElevation = 14.dp,
-                border = androidx.compose.foundation.BorderStroke(1.dp, radarColors.verde.copy(alpha = 0.55f))
-            ) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (seleccionEvento != null) {
+                CapaSeleccionLugarEvento(
+                    onSeleccionar = {
+                        val centro = estadoCamara.centro
+                        onConfirmarLugarEvento(Ubicacion(centro.latitud, centro.longitud, System.currentTimeMillis()))
+                    },
+                    onCancelar = onCancelarSeleccionEvento,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+            // Alerta de GPS / Ubicación del sistema desactivada (Xiaomi / Poco / Samsung / Motorola)
+            if (!gpsHabilitado) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 10.dp, start = 70.dp, end = 16.dp)
+                        .fillMaxWidth()
+                        .clickable {
+                            runCatching {
+                                contexto.startActivity(com.renea.arete_social.util.GestorCompatibilidadFabricantes.crearIntentAjustesUbicacion())
+                            }
+                        },
+                    color = Color(0xFF2A1B00),
+                    shape = RoundedCornerShape(10.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB300))
+                ) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Text("⚠️", fontSize = 15.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "LIBRERÍA CERCANA",
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.8.sp
+                                text = "Ubicación (GPS) apagada en el móvil",
+                                color = Color(0xFFFFB300),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Obras de cercanos en las últimas 24 h",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = "En Xiaomi y Samsung el radar BLE no encuentra celulares si el GPS está apagado. Toca para activar.",
+                                color = Color.White.copy(alpha = 0.85f),
                                 fontSize = 10.sp
                             )
                         }
-                        Text(
-                            "✕",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.clickable { panelMapaActivo = null }.padding(6.dp)
-                        )
                     }
+                }
+            }
 
-                    if (estado.obrasCercanasMapa.isEmpty()) {
-                        Text(
-                            text = "Aún no hay cuentos ni poemas compartidos cerca en las últimas 24 h.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(vertical = 12.dp)
+            // Cabecera compacta a la izquierda: perfil, marca y accesos rápidos.
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 12.dp, top = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(radarColors.panel)
+                        .border(1.dp, radarColors.verde.copy(alpha = 0.55f), CircleShape)
+                        .clickable { onIrMiPerfil() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (fotoPerfilActual != null) {
+                        AsyncImage(
+                            model = fotoPerfilActual,
+                            contentDescription = "Mi perfil",
+                            modifier = Modifier.fillMaxSize().clip(CircleShape)
+                                .clickable { onIrMiPerfil() }
                         )
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.heightIn(max = 310.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            items(estado.obrasCercanasMapa, key = { it.id }) { obra ->
-                                val esPropia = obra.autorId == usuarioIdActual
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-                                        .border(0.6.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
-                                        .clickable {
-                                            if (!esPropia) {
-                                                scopeRegalos.launch {
-                                                    runCatching {
-                                                        contenedor.libreria.registrarLecturaObra(obra.id, obra.autorId, usuarioIdActual)
-                                                    }
-                                                }
-                                            }
-                                            obraPergaminoSeleccionada = obra
-                                        }
-                                        .padding(horizontal = 10.dp, vertical = 9.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text("📖", fontSize = 18.sp)
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = obra.titulo,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        val autor = if (esPropia) "ti (Tu obra)" else (obra.autorNombre?.ifBlank { null } ?: "Alguien cercano")
-                                        Text(
-                                            text = "${obra.tipo.etiqueta} · por $autor",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontSize = 10.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    if (!esPropia) {
-                                        Text(
-                                            text = "✉",
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontSize = 16.sp,
-                                            modifier = Modifier
+                        Text(
+                            text = nombrePerfilActual.take(1).uppercase().ifBlank { "U" },
+                            color = radarColors.verde,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Arete",
+                    color = radarColors.verdeBrillante,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.2.sp
+                )
+
+                // Los tres accesos: círculos pequeños apilados que se despliegan al pulsar.
+                AccesosMapaApilados(
+                    accesos = listOf(
+                        AccesoMapa("personas", "◎", "Cercanos"),
+                        AccesoMapa("salas", "▤", "Sala general"),
+                        AccesoMapa("libreria", "📚", "Librería")
+                    ),
+                    idActivo = panelMapaActivo,
+                    onSeleccionar = { id -> panelMapaActivo = if (panelMapaActivo == id) null else id }
+                )
+            }
+
+            // Panel compacto de personas cercanas.
+            panelMapaActivo?.takeIf { it == "personas" }?.let { panel ->
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 12.dp, top = 136.dp, end = 20.dp)
+                        .width(278.dp)
+                        .heightIn(max = 350.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                    tonalElevation = 8.dp,
+                    shadowElevation = 12.dp,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, radarColors.verde.copy(alpha = 0.55f))
+                ) {
+                    Column(modifier = Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "PERSONAS CERCANAS",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.8.sp
+                                )
+                                Text(
+                                    text = "Escríbele o envíale ✦ chispa y 💊 medicina",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 10.sp
+                                )
+                            }
+                            Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable { panelMapaActivo = null }.padding(6.dp))
+                        }
+
+                        if (panel == "personas") {
+                            if (estado.personasCercanas.isEmpty()) {
+                                Text("Todavía no se detectan personas cercanas.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(vertical = 12.dp))
+                            } else {
+                                LazyColumn(modifier = Modifier.heightIn(max = 285.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    items(estado.personasCercanas, key = { it.id }) { persona ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
                                                 .clickable {
                                                     panelMapaActivo = null
-                                                    val nombreChat = obra.autorNombre?.ifBlank { null } ?: "Autor"
-                                                    onAbrirPantallaSecundaria(PantallaSecundaria.AbrirChatConUsuario(obra.autorId, "Chat: $nombreChat"))
-                                                }
-                                                .padding(6.dp)
-                                        )
+                                                    persona.usuarioId?.let { onAbrirPantallaSecundaria(PantallaSecundaria.AbrirChatConUsuario(it, "Chat: ${persona.nombre}")) }
+                                                }.padding(horizontal = 8.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Box(modifier = Modifier.size(34.dp).clip(CircleShape).background(radarColors.verde.copy(alpha = 0.18f)).border(1.dp, radarColors.verde.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
+                                                Text(persona.nombre.take(1).uppercase().ifBlank { "?" }, color = radarColors.verdeBrillante, fontWeight = FontWeight.Bold)
+                                            }
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(persona.nombre, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                                Text(persona.distanciaMetros?.let { "A ${it.toInt()} m" } ?: "Cerca de ti", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                                            }
+                                            if (persona.usuarioId != null) {
+                                                Text(
+                                                    "✦",
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    fontSize = 17.sp,
+                                                    modifier = Modifier
+                                                        .clickable { enviarRegalo(persona.usuarioId, persona.nombre, TipoRegalo.CHISPA) }
+                                                        .padding(horizontal = 5.dp, vertical = 4.dp)
+                                                )
+                                                Text(
+                                                    "💊",
+                                                    fontSize = 15.sp,
+                                                    modifier = Modifier
+                                                        .clickable { enviarRegalo(persona.usuarioId, persona.nombre, TipoRegalo.MEDICINA) }
+                                                        .padding(horizontal = 5.dp, vertical = 4.dp)
+                                                )
+                                            }
+                                            Text("✉", color = MaterialTheme.colorScheme.primary, fontSize = 17.sp)
+                                        }
                                     }
                                 }
                             }
@@ -768,51 +659,187 @@ fun ContenidoRadar(
                     }
                 }
             }
-        }
 
-        obraPergaminoSeleccionada?.let { obra ->
-            DialogoPergaminoObra(
-                obra = obra,
-                usuarioIdActual = usuarioIdActual,
-                onCerrar = { obraPergaminoSeleccionada = null },
-                onResponder = { autorId, autorNombre ->
-                    obraPergaminoSeleccionada = null
-                    onAbrirPantallaSecundaria(PantallaSecundaria.AbrirChatConUsuario(autorId, "Chat: $autorNombre"))
-                },
-                onAbrirPdf = { o, alObtener ->
-                    scopeRegalos.launch {
-                        runCatching { contenedor.libreria.urlTemporalPdf(o) }.onSuccess(alObtener)
+            // Chat General integrado en el mapa (versión flotante). Su versión ampliada va arriba, en la
+            // mitad superior de la pantalla dividida.
+            if (panelMapaActivo == "salas" && !chatAmpliadoVisible && chatGeneralVm != null) {
+                PanelChatGeneral(
+                    viewModel = chatGeneralVm,
+                    contenedor = contenedor,
+                    ampliado = false,
+                    onAlternarAmpliado = { chatAmpliado = true },
+                    onCerrar = { panelMapaActivo = null },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 12.dp, top = 136.dp, end = 12.dp)
+                        .width(340.dp)
+                        .height(420.dp)
+                )
+            }
+
+            if (panelMapaActivo == "libreria") {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 12.dp, top = 136.dp, end = 20.dp)
+                        .width(286.dp)
+                        .heightIn(max = 380.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                    tonalElevation = 8.dp,
+                    shadowElevation = 14.dp,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, radarColors.verde.copy(alpha = 0.55f))
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "LIBRERÍA CERCANA",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.8.sp
+                                )
+                                Text(
+                                    text = "Obras de cercanos en las últimas 24 h",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 10.sp
+                                )
+                            }
+                            Text(
+                                "✕",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.clickable { panelMapaActivo = null }.padding(6.dp)
+                            )
+                        }
+
+                        if (estado.obrasCercanasMapa.isEmpty()) {
+                            Text(
+                                text = "Aún no hay cuentos ni poemas compartidos cerca en las últimas 24 h.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(vertical = 12.dp)
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.heightIn(max = 310.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                items(estado.obrasCercanasMapa, key = { it.id }) { obra ->
+                                    val esPropia = obra.autorId == usuarioIdActual
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                                            .border(0.6.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                                            .clickable {
+                                                if (!esPropia) {
+                                                    scopeRegalos.launch {
+                                                        runCatching {
+                                                            contenedor.libreria.registrarLecturaObra(obra.id, obra.autorId, usuarioIdActual)
+                                                        }
+                                                    }
+                                                }
+                                                obraPergaminoSeleccionada = obra
+                                            }
+                                            .padding(horizontal = 10.dp, vertical = 9.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text("📖", fontSize = 18.sp)
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = obra.titulo,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            val autor = if (esPropia) "ti (Tu obra)" else (obra.autorNombre?.ifBlank { null } ?: "Alguien cercano")
+                                            Text(
+                                                text = "${obra.tipo.etiqueta} · por $autor",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontSize = 10.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        if (!esPropia) {
+                                            Text(
+                                                text = "✉",
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontSize = 16.sp,
+                                                modifier = Modifier
+                                                    .clickable {
+                                                        panelMapaActivo = null
+                                                        val nombreChat = obra.autorNombre?.ifBlank { null } ?: "Autor"
+                                                        onAbrirPantallaSecundaria(PantallaSecundaria.AbrirChatConUsuario(obra.autorId, "Chat: $nombreChat"))
+                                                    }
+                                                    .padding(6.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+            }
+
+            obraPergaminoSeleccionada?.let { obra ->
+                DialogoPergaminoObra(
+                    obra = obra,
+                    usuarioIdActual = usuarioIdActual,
+                    onCerrar = { obraPergaminoSeleccionada = null },
+                    onResponder = { autorId, autorNombre ->
+                        obraPergaminoSeleccionada = null
+                        onAbrirPantallaSecundaria(PantallaSecundaria.AbrirChatConUsuario(autorId, "Chat: $autorNombre"))
+                    },
+                    onAbrirPdf = { o, alObtener ->
+                        scopeRegalos.launch {
+                            runCatching { contenedor.libreria.urlTemporalPdf(o) }.onSuccess(alObtener)
+                        }
+                    }
+                )
+            }
+
+            // Controles flotantes: arriba a la derecha el botón único de Mapa (capas y descarga) con la
+            // brújula debajo; abajo al centro Alejar · Centrar · Acercar; abajo a la derecha, Agregar evento.
+            val coroutineScope = rememberCoroutineScope()
+
+            // Brújula táctica interactiva (orientación al Norte 100% Free Software)
+            BrujulaTactico(
+                bearing = estadoCamara.bearing,
+                onClick = {
+                    coroutineScope.launch {
+                        estadoCamara.orientarAlNorte()
+                    }
+                },
+                siempreVisible = true,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(end = 16.dp, top = if (!gpsHabilitado) 128.dp else 72.dp)
             )
-        }
 
-        // Botones flotantes tácticos: Selector de Capas, Zoom, Brújula, Crear Evento (+) y Mi Ubicación
-        val coroutineScope = rememberCoroutineScope()
+            // Botón único de Mapa: al pulsarlo se elige la capa o se descarga el mapa offline.
+            SelectorCapaMapa(
+                capaActual = capaSeleccionada,
+                onCapaSeleccionada = { capaSeleccionada = it },
+                onDescargarMapa = { mostrarDialogoDescarga = true },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(end = 16.dp, top = if (!gpsHabilitado) 72.dp else 16.dp)
+            )
 
-        // Brújula táctica interactiva (orientación al Norte 100% Free Software)
-        BrujulaTactico(
-            bearing = estadoCamara.bearing,
-            onClick = {
-                coroutineScope.launch {
-                    estadoCamara.orientarAlNorte()
-                }
-            },
-            siempreVisible = true,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(end = 16.dp, top = if (!gpsHabilitado) 72.dp else 16.dp)
-        )
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Botonera táctica de Zoom (+ / −)
-            BotoneraZoom(
+            // Alejar (izquierda) · Centrar (medio) · Acercar (derecha)
+            BarraControlesCamara(
+                siguiendoUsuario = camaraCentradaEnUsuario,
                 onZoomIn = {
                     coroutineScope.launch {
                         estadoCamara.zoomIn()
@@ -822,220 +849,158 @@ fun ContenidoRadar(
                     coroutineScope.launch {
                         estadoCamara.zoomOut()
                     }
-                }
-            )
-
-            // Botón Descargar Mapa Offline para uso sin internet
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(radarColors.panel)
-                    .border(1.dp, radarColors.verde.copy(alpha = 0.6f), CircleShape)
-                    .clickable { mostrarDialogoDescarga = true },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "📥",
-                    fontSize = 18.sp
-                )
-            }
-
-            // Selector de Capa de Mapa (Estándar, Oscuro, Terreno, Saturado)
-            SelectorCapaMapa(
-                capaActual = capaSeleccionada,
-                onCapaSeleccionada = { capaSeleccionada = it }
-            )
-
-            // Botón Crear Evento (+)
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(radarColors.panel)
-                    .border(1.dp, radarColors.verde.copy(alpha = 0.6f), CircleShape)
-                    .clickable {
-                        onAbrirPantallaSecundaria(
-                            // El lugar se elige primero sobre el mapa; el formulario viene después.
-                            PantallaSecundaria.SeleccionarLugarEvento()
-                        )
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "+",
-                    color = radarColors.verdeBrillante,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Light
-                )
-            }
-
-            // Botón Mi Ubicación (mira táctica con seguimiento activo)
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(if (camaraCentradaEnUsuario) radarColors.verde.copy(alpha = 0.25f) else radarColors.panel)
-                    .border(
-                        width = if (camaraCentradaEnUsuario) 1.5.dp else 1.dp,
-                        color = if (camaraCentradaEnUsuario) radarColors.verdeBrillante else radarColors.verde.copy(alpha = 0.5f),
-                        shape = CircleShape
-                    )
-                    .clickable {
-                        estado.ubicacionPropia?.let { loc ->
-                            camaraCentradaEnUsuario = true
-                            coroutineScope.launch {
-                                // Conserva el zoom y el giro actuales.
-                                estadoCamara.animar(PuntoMapa(loc.latitud, loc.longitud), duracionMs = 600L)
-                            }
+                },
+                onCentrar = {
+                    estado.ubicacionPropia?.let { loc ->
+                        camaraCentradaEnUsuario = true
+                        coroutineScope.launch {
+                            // Conserva el zoom y el giro actuales.
+                            estadoCamara.animar(PuntoMapa(loc.latitud, loc.longitud), duracionMs = 600L)
                         }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Canvas(modifier = Modifier.size(22.dp)) {
-                    val centro = Offset(size.width / 2f, size.height / 2f)
-                    val colorMira = if (camaraCentradaEnUsuario) radarColors.verdeBrillante else radarColors.muted
-                    drawCircle(color = colorMira, radius = size.width * 0.28f, style = Stroke(width = 1.5.dp.toPx()))
-                    if (camaraCentradaEnUsuario) {
-                        drawCircle(color = colorMira, radius = size.width * 0.14f)
                     }
-                    val tick = 4.dp.toPx()
-                    drawLine(color = colorMira, start = Offset(centro.x, 0f), end = Offset(centro.x, tick), strokeWidth = 1.5.dp.toPx())
-                    drawLine(color = colorMira, start = Offset(centro.x, size.height - tick), end = Offset(centro.x, size.height), strokeWidth = 1.5.dp.toPx())
-                    drawLine(color = colorMira, start = Offset(0f, centro.y), end = Offset(tick, centro.y), strokeWidth = 1.5.dp.toPx())
-                    drawLine(color = colorMira, start = Offset(size.width - tick, centro.y), end = Offset(size.width, centro.y), strokeWidth = 1.5.dp.toPx())
-                }
-            }
-        }
-
-        // ====================================================
-        // TARJETA FLOTANTE DE ENCUENTRO ACTIVO (§5B.5)
-        // ====================================================
-        val sesionEncuentroControl by com.renea.arete_social.feature.encuentros.GestorEncuentros.sesionActiva.collectAsState()
-        sesionEncuentroControl?.let { sesion ->
-            val amigoNombre = sesion.amigoNombre
-            val modo = sesion.modo
-            val ubicacionPropia = estado.ubicacionPropia
-            val ubicacionAmigo = sesion.amigoUbicacion
-            val activo = sesion.estado == com.renea.arete_social.domain.model.EstadoEncuentro.ACTIVO
-            // Con ruta por calles se usa su largo real; si no, la distancia en línea recta.
-            val distancia = sesion.ruta?.distanciaMetros ?: if (ubicacionPropia != null && ubicacionAmigo != null) {
-                com.renea.arete_social.feature.encuentros.GestorEncuentros.calcularDistanciaMetros(
-                    ubicacionPropia,
-                    ubicacionAmigo
-                )
-            } else null
-            val enLineaRecta = sesion.ruta?.porCalles == false
-            val minutosSinSenal = ubicacionAmigo?.let { (System.currentTimeMillis() - it.timestamp) / 60_000L } ?: 0L
-            val minutos = distancia?.let {
-                com.renea.arete_social.feature.encuentros.GestorEncuentros.calcularTiempoEstimadoMinutos(it, modo)
-            }
-
-            Box(
+                },
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 16.dp, bottom = 24.dp, end = 76.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
-                    .padding(14.dp)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = if (activo) "📍 ENCUENTRO: $amigoNombre" else "⏳ INVITACIÓN ENVIADA: $amigoNombre",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = if (activo) "✕ Terminar" else "✕ Cancelar",
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.clickable {
-                                com.renea.arete_social.feature.encuentros.GestorEncuentros.terminarEncuentro()
-                            }
-                        )
-                    }
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp)
+            )
 
-                    if (!activo) {
-                        Text(
-                            text = "Esperando que $amigoNombre acepte. Hasta entonces no se comparte tu ubicación.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp
-                        )
-                    } else if (distancia != null) {
-                        Text(
-                            text = "A ${distancia.toInt()} m · ~${minutos} min (${modo.etiqueta})" +
-                                if (enLineaRecta) " · en línea recta" else "",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 12.sp
-                        )
-                        if (minutosSinSenal >= 2) {
+            // Agregar evento (+): el lugar se elige primero sobre el mapa; el formulario viene después.
+            BotonCrearEvento(
+                onClick = { onAbrirPantallaSecundaria(PantallaSecundaria.SeleccionarLugarEvento()) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 28.dp)
+            )
+
+            // ====================================================
+            // TARJETA FLOTANTE DE ENCUENTRO ACTIVO (§5B.5)
+            // ====================================================
+            val sesionEncuentroControl by com.renea.arete_social.feature.encuentros.GestorEncuentros.sesionActiva.collectAsState()
+            sesionEncuentroControl?.let { sesion ->
+                val amigoNombre = sesion.amigoNombre
+                val modo = sesion.modo
+                val ubicacionPropia = estado.ubicacionPropia
+                val ubicacionAmigo = sesion.amigoUbicacion
+                val activo = sesion.estado == com.renea.arete_social.domain.model.EstadoEncuentro.ACTIVO
+                // Con ruta por calles se usa su largo real; si no, la distancia en línea recta.
+                val distancia = sesion.ruta?.distanciaMetros ?: if (ubicacionPropia != null && ubicacionAmigo != null) {
+                    com.renea.arete_social.feature.encuentros.GestorEncuentros.calcularDistanciaMetros(
+                        ubicacionPropia,
+                        ubicacionAmigo
+                    )
+                } else null
+                val enLineaRecta = sesion.ruta?.porCalles == false
+                val minutosSinSenal = ubicacionAmigo?.let { (System.currentTimeMillis() - it.timestamp) / 60_000L } ?: 0L
+                val minutos = distancia?.let {
+                    com.renea.arete_social.feature.encuentros.GestorEncuentros.calcularTiempoEstimadoMinutos(it, modo)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 16.dp, bottom = 96.dp, end = 16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
+                        .padding(14.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                text = "Última posición de $amigoNombre: hace $minutosSinSenal min",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 10.sp
+                                text = if (activo) "📍 ENCUENTRO: $amigoNombre" else "⏳ INVITACIÓN ENVIADA: $amigoNombre",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (activo) "✕ Terminar" else "✕ Cancelar",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.clickable {
+                                    com.renea.arete_social.feature.encuentros.GestorEncuentros.terminarEncuentro()
+                                }
                             )
                         }
-                    } else {
-                        Text(
-                            text = "Esperando ubicación de $amigoNombre...",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp
-                        )
-                    }
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (activo) {
+                        if (!activo) {
+                            Text(
+                                text = "Esperando que $amigoNombre acepte. Hasta entonces no se comparte tu ubicación.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp
+                            )
+                        } else if (distancia != null) {
+                            Text(
+                                text = "A ${distancia.toInt()} m · ~${minutos} min (${modo.etiqueta})" +
+                                    if (enLineaRecta) " · en línea recta" else "",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 12.sp
+                            )
+                            if (minutosSinSenal >= 2) {
+                                Text(
+                                    text = "Última posición de $amigoNombre: hace $minutosSinSenal min",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = "Esperando ubicación de $amigoNombre...",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (activo) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.primaryContainer)
+                                        .clickable {
+                                            com.renea.arete_social.feature.encuentros.GestorEncuentros.alternarModoRuta()
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "Modo: ${modo.etiqueta}",
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                                     .clickable {
-                                        com.renea.arete_social.feature.encuentros.GestorEncuentros.alternarModoRuta()
+                                        onAbrirPantallaSecundaria(
+                                            PantallaSecundaria.AbrirChatConUsuario(sesion.amigoId, "Chat: $amigoNombre")
+                                        )
                                     }
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = "Modo: ${modo.etiqueta}",
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    text = "💬 Chat",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                         }
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .clickable {
-                                    onAbrirPantallaSecundaria(
-                                        PantallaSecundaria.AbrirChatConUsuario(sesion.amigoId, "Chat: $amigoNombre")
-                                    )
-                                }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "💬 Chat",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
                     }
                 }
             }
-        }
-        } // fin del else (controles normales del mapa)
+            } // fin del else (controles normales del mapa)
+        } // fin del Box del mapa
     }
 }
 
@@ -1165,4 +1130,103 @@ private fun RadarHud(modifier: Modifier = Modifier) {
             strokeWidth = 1f
         )
     }
+}
+
+/**
+ * Panel de Sala general. Se usa en dos formas:
+ *  - flotante sobre el mapa ([ampliado] = false);
+ *  - ampliado, ocupando la mitad superior de la pantalla dividida ([ampliado] = true).
+ * El botón discreto ⤢ / ⤡ de la cabecera alterna entre ambas.
+ */
+@Composable
+private fun PanelChatGeneral(
+    viewModel: ChatViewModel,
+    contenedor: ContenedorApp,
+    ampliado: Boolean,
+    onAlternarAmpliado: () -> Unit,
+    onCerrar: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val radarColors = LocalRadarColors.current
+    Surface(
+        modifier = modifier,
+        shape = if (ampliado) RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp) else RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        tonalElevation = 8.dp,
+        shadowElevation = 14.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, radarColors.verde.copy(alpha = 0.65f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (ampliado) Modifier.statusBarsPadding() else Modifier)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().background(radarColors.panel).padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("SALA GENERAL", color = radarColors.verdeBrillante, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (ampliado) "Chat público · pantalla dividida" else "Chat público · en el mapa",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 10.sp
+                    )
+                }
+                // Botón discreto para ampliar / encoger el chat.
+                Text(
+                    text = if (ampliado) "⤡" else "⤢",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontSize = 15.sp,
+                    modifier = Modifier
+                        .clickable { onAlternarAmpliado() }
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+                Text(
+                    "✕",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 18.sp,
+                    modifier = Modifier.clickable { onCerrar() }.padding(start = 4.dp, top = 2.dp, bottom = 2.dp)
+                )
+            }
+            androidx.compose.material3.HorizontalDivider(color = radarColors.verde.copy(alpha = 0.25f))
+            ChatScreen(
+                viewModel = viewModel,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                chatId = ID_CHAT_GENERAL,
+                tituloChat = "Sala General",
+                gestorLlamadas = contenedor.gestorLlamadas,
+                onVolverAlMapa = onCerrar,
+                esVistaHub = false
+            )
+        }
+    }
+}
+
+/**
+ * Mientras está en pantalla, el teclado no redimensiona ni sube el contenido de la ventana:
+ * solo se superpone. (En esta pantalla, por su forma, el comportamiento habitual de otros chats
+ * resulta engorroso.) Al salir se restaura el modo anterior de la ventana.
+ */
+@Composable
+private fun SinReajusteDeTeclado() {
+    val contexto = LocalContext.current
+    DisposableEffect(contexto) {
+        val ventana = contexto.buscarActividad()?.window
+        val anterior = ventana?.attributes?.softInputMode
+        ventana?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
+        onDispose {
+            if (ventana != null && anterior != null) ventana.setSoftInputMode(anterior)
+        }
+    }
+}
+
+private fun Context.buscarActividad(): Activity? {
+    var actual: Context? = this
+    while (actual is ContextWrapper) {
+        if (actual is Activity) return actual
+        actual = actual.baseContext
+    }
+    return null
 }

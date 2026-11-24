@@ -73,11 +73,11 @@ enum class TemaMapa {
  * - [ESTANDAR]: MAPNIK desaturado (el estilo actual).
  * - [OSCURO]: MAPNIK invertido (el filtro oscuro que ya teníamos).
  * - [TERRENO]: OpenTopoMap — curvas de nivel, montañas, senderos.
- * - [SATURADO]: MAPNIK con saturación alta para distinguir zonas verdes, agua y calles a color.
+ * - [SATELITE]: Fotografía satelital real de alta resolución (Esri World Imagery).
  */
 enum class CapaMapa(val etiqueta: String, val icono: String) {
     ESTANDAR("Estándar", "🗺️"),
     OSCURO("Oscuro",    "🌑"),
     TERRENO("Terreno",  "⛰️"),
-    SATURADO("Saturado", "🛰️")
+    SATELITE("Satélite", "🛰️")
 }

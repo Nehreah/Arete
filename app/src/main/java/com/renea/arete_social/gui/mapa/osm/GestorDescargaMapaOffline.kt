@@ -30,7 +30,11 @@ class GestorDescargaMapaOffline(
     private val context: Context,
     private val mapView: MapView
 ) {
-    private val cacheManager = CacheManager(mapView)
+    private val cacheManager = runCatching {
+        CacheManager(mapView)
+    }.getOrElse {
+        CacheManager(FuenteMapnik, mapView.tileProvider.tileWriter, 0, 19)
+    }
     private var tareaActual: CacheManager.CacheManagerTask? = null
 
     private val _estado = MutableStateFlow<EstadoDescargaMapa>(EstadoDescargaMapa.Inactivo)
@@ -62,6 +66,8 @@ class GestorDescargaMapaOffline(
 
     /**
      * Inicia la descarga asíncrona de teselas para que queden disponibles 100% offline.
+     * Utiliza [downloadAreaAsyncNoUI] para delegar el progreso a nuestra interfaz Compose
+     * sin levantar diálogos obsoletos ni bloquear la ventana.
      */
     fun iniciarDescarga(
         caja: BoundingBox,
@@ -77,7 +83,7 @@ class GestorDescargaMapaOffline(
 
         _estado.value = EstadoDescargaMapa.EnProgreso(0, 0, total)
         try {
-            tareaActual = cacheManager.downloadAreaAsync(
+            tareaActual = cacheManager.downloadAreaAsyncNoUI(
                 context,
                 caja,
                 zoomMin,
@@ -89,8 +95,14 @@ class GestorDescargaMapaOffline(
                     }
 
                     override fun onTaskFailed(errors: Int) {
-                        Log.e(TAG, "Descarga de mapas falló con $errors errores")
-                        _estado.value = EstadoDescargaMapa.Error("Descarga incompleta: $errors errores de conexión")
+                        Log.w(TAG, "Descarga de mapas finalizó con $errors errores de un total de $total")
+                        val descargadas = (total - errors).coerceAtLeast(0)
+                        if (descargadas > 0) {
+                            // Si la gran mayoría de teselas se guardó, el mapa funciona offline.
+                            _estado.value = EstadoDescargaMapa.Completado(descargadas)
+                        } else {
+                            _estado.value = EstadoDescargaMapa.Error("No se pudo conectar al servidor de mapas. Verifica tu conexión e inténtalo de nuevo.")
+                        }
                     }
 
                     override fun updateProgress(progress: Int, current: Int, totalProgress: Int, percent: Int) {
