@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.foundation.layout.Spacer
 import com.renea.arete_social.gui.mapa.osm.AtribucionMapa
 import com.renea.arete_social.gui.mapa.osm.CapaMapa
 import com.renea.arete_social.gui.mapa.osm.ColorPin
@@ -174,6 +175,12 @@ fun ContenidoRadar(
     var obraPergaminoSeleccionada by remember { mutableStateOf<com.renea.arete_social.domain.model.ObraLibreria?>(null) }
     var camaraCentradaEnUsuario by remember { mutableStateOf(true) }
     var posicionInicialFijada by remember { mutableStateOf(false) }
+
+    val contexto = LocalContext.current
+    var mostrarDialogoDescarga by remember { mutableStateOf(false) }
+    var gpsHabilitado by remember {
+        mutableStateOf(com.renea.arete_social.util.GestorCompatibilidadFabricantes.estaUbicacionHabilitada(contexto))
+    }
 
     // OSMDroid es un mapa 2D: ya no hay inclinación (tilt) como en Google Maps.
     val estadoCamara = remember { EstadoCamaraOsm(posicionInicial, EstadoCamaraOsm.ZOOM_POR_DEFECTO) }
@@ -329,7 +336,9 @@ fun ContenidoRadar(
                     id.startsWith("evento:") ->
                         onAbrirPantallaSecundaria(PantallaSecundaria.VerEvento(id.removePrefix("evento:")))
                 }
-            }
+            },
+            mostrarDialogoDescarga = mostrarDialogoDescarga,
+            onCerrarDialogoDescarga = { mostrarDialogoDescarga = false }
         )
 
         // Mimis: hasta 14 gatitos que deambulan por el mapa (posiciones ficticias, nunca el GPS).
@@ -404,6 +413,44 @@ fun ContenidoRadar(
                 modifier = Modifier.fillMaxSize()
             )
         } else {
+        // Alerta de GPS / Ubicación del sistema desactivada (Xiaomi / Poco / Samsung / Motorola)
+        if (!gpsHabilitado) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 10.dp, start = 70.dp, end = 16.dp)
+                    .fillMaxWidth()
+                    .clickable {
+                        runCatching {
+                            contexto.startActivity(com.renea.arete_social.util.GestorCompatibilidadFabricantes.crearIntentAjustesUbicacion())
+                        }
+                    },
+                color = Color(0xFF2A1B00),
+                shape = RoundedCornerShape(10.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB300))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("⚠️", fontSize = 15.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Ubicación (GPS) apagada en el móvil",
+                            color = Color(0xFFFFB300),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "En Xiaomi y Samsung el radar BLE no encuentra celulares si el GPS está apagado. Toca para activar.",
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+            }
+        }
 
         // Cabecera compacta a la izquierda: perfil, marca y accesos rápidos.
         Column(
@@ -740,8 +787,23 @@ fun ContenidoRadar(
             )
         }
 
-        // Botones flotantes tácticos: Selector de Capas, Crear Evento (+) y Centrar en Mi Ubicación (§5B.4)
+        // Botones flotantes tácticos: Selector de Capas, Zoom, Brújula, Crear Evento (+) y Mi Ubicación
         val coroutineScope = rememberCoroutineScope()
+
+        // Brújula táctica interactiva (orientación al Norte 100% Free Software)
+        BrujulaTactico(
+            bearing = estadoCamara.bearing,
+            onClick = {
+                coroutineScope.launch {
+                    estadoCamara.orientarAlNorte()
+                }
+            },
+            siempreVisible = true,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = 16.dp, top = if (!gpsHabilitado) 72.dp else 16.dp)
+        )
+
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -749,6 +811,36 @@ fun ContenidoRadar(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Botonera táctica de Zoom (+ / −)
+            BotoneraZoom(
+                onZoomIn = {
+                    coroutineScope.launch {
+                        estadoCamara.zoomIn()
+                    }
+                },
+                onZoomOut = {
+                    coroutineScope.launch {
+                        estadoCamara.zoomOut()
+                    }
+                }
+            )
+
+            // Botón Descargar Mapa Offline para uso sin internet
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(radarColors.panel)
+                    .border(1.dp, radarColors.verde.copy(alpha = 0.6f), CircleShape)
+                    .clickable { mostrarDialogoDescarga = true },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "📥",
+                    fontSize = 18.sp
+                )
+            }
+
             // Selector de Capa de Mapa (Estándar, Oscuro, Terreno, Saturado)
             SelectorCapaMapa(
                 capaActual = capaSeleccionada,

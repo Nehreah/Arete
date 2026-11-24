@@ -281,7 +281,14 @@ class ProximityManagerBle(
         if (!adapter.isEnabled || !tienePermisosBle()) return
         if (visibilidadProveedor() == com.renea.arete_social.domain.model.Visibilidad.INVISIBLE) return
 
-        val adv = adapter.bluetoothLeAdvertiser ?: return
+        // Diagnóstico para dispositivos de gama baja: chips económicos sin soporte publicitario
+        if (!adapter.isMultipleAdvertisementSupported) {
+            Log.w(TAG, "Hardware BLE: isMultipleAdvertisementSupported = false. El dispositivo opera en modo recepción/escaneo.")
+        }
+        val adv = adapter.bluetoothLeAdvertiser ?: run {
+            Log.w(TAG, "Hardware BLE: bluetoothLeAdvertiser es null. Anuncio omitido; solo recepción BLE activa.")
+            return
+        }
         advertiser = adv
 
         val (settings, data, scanResponse) = construirPaquetesTier(usuarioId, tier)
@@ -308,6 +315,11 @@ class ProximityManagerBle(
                 Log.e(TAG, "Publicidad BLE Tier $tier falló ($errorMsg)")
                 publicidadActiva = false
                 cayoEnFallback = true
+
+                if (errorCode == ADVERTISE_FAILED_FEATURE_UNSUPPORTED) {
+                    Log.w(TAG, "Hardware BLE no soporta anuncios (FEATURE_UNSUPPORTED). Abortando tiers adicionales.")
+                    return
+                }
 
                 if (tier < 4) {
                     advertiserJob?.cancel()

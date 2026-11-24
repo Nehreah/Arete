@@ -60,7 +60,10 @@ fun OsmMapa(
     onClickMapa: (PuntoMapa) -> Unit = {},
     onClickMarcador: (String) -> Unit = {},
     proveedor: ProveedorTeselas = ProveedorTeselasMapnik,
-    bloquearPager: Boolean = true
+    bloquearPager: Boolean = true,
+    mostrarDialogoDescarga: Boolean = false,
+    onCerrarDialogoDescarga: () -> Unit = {},
+    onMapViewReady: ((MapView) -> Unit)? = null
 ) {
     val contexto = LocalContext.current
     val densidad = contexto.resources.displayMetrics.density
@@ -91,6 +94,10 @@ fun OsmMapa(
         ConciliadorOverlays(mapView, iconos, densidad).also { it.fijarOverlaysBase() }
     }
 
+    androidx.compose.runtime.LaunchedEffect(mapView) {
+        onMapViewReady?.invoke(mapView)
+    }
+
     // Cámara: se enlaza a la vista y se mantiene sincronizada tras cada dibujo.
     DisposableEffect(mapView, estadoCamara) {
         mapView.alDibujar = { estadoCamara.sincronizarDesdeMapa() }
@@ -106,8 +113,8 @@ fun OsmMapa(
         }
     }
 
-    // Ciclo de vida: onResume/onPause guardan caché y detienen trabajo. NO se llama a onDetach() a mano:
-    // MapView ya lo hace en onDetachedFromWindow cuando AndroidView sale de la composición.
+    // Ciclo de vida: onResume/onPause guardan caché y detienen trabajo.
+    // Invocamos onDetach() explícitamente al salir de composición para liberar hilos y bitmaps.
     val vista = LocalView.current
     DisposableEffect(vista, mapView) {
         val propietario = vista.findViewTreeLifecycleOwner()
@@ -115,6 +122,7 @@ fun OsmMapa(
             when (evento) {
                 Lifecycle.Event.ON_RESUME -> mapView.onResume()
                 Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                Lifecycle.Event.ON_DESTROY -> mapView.onDetach()
                 else -> Unit
             }
         }
@@ -122,12 +130,14 @@ fun OsmMapa(
         onDispose {
             propietario?.lifecycle?.removeObserver(observador)
             conciliador.limpiar()
+            mapView.onDetach()
         }
     }
 
     AndroidView(
         modifier = modifier,
         factory = { mapView },
+        onRelease = { mv -> mv.onDetach() },
         update = { mv ->
             if (temaAplicado[0] != tema) {
                 temaAplicado[0] = tema
@@ -137,6 +147,15 @@ fun OsmMapa(
             conciliador.conciliar(lineas, marcadores, ubicacionPropia)
         }
     )
+
+    if (mostrarDialogoDescarga) {
+        val gestor = remember(mapView) { GestorDescargaMapaOffline(contexto, mapView) }
+        DialogoDescargaMapaOffline(
+            gestor = gestor,
+            centroActual = GeoPoint(estadoCamara.centro.latitud, estadoCamara.centro.longitud),
+            onDismiss = onCerrarDialogoDescarga
+        )
+    }
 }
 
 /** Fuente de teselas + filtro de color + colores de carga del tema. No recrea el mapa ni mueve la cámara. */

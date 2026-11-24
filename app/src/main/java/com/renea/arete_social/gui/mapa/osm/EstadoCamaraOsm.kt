@@ -125,6 +125,20 @@ class EstadoCamaraOsm(
         }
     }
 
+    suspend fun zoomIn(paso: Double = 1.0, duracionMs: Long = 250L) {
+        val nuevoZoom = (zoom + paso).coerceIn(ZOOM_MINIMO, ZOOM_MAXIMO)
+        animar(destino = centro, zoom = nuevoZoom, bearing = bearing, duracionMs = duracionMs)
+    }
+
+    suspend fun zoomOut(paso: Double = 1.0, duracionMs: Long = 250L) {
+        val nuevoZoom = (zoom - paso).coerceIn(ZOOM_MINIMO, ZOOM_MAXIMO)
+        animar(destino = centro, zoom = nuevoZoom, bearing = bearing, duracionMs = duracionMs)
+    }
+
+    suspend fun orientarAlNorte(duracionMs: Long = 350L) {
+        animar(destino = centro, zoom = zoom, bearing = 0f, duracionMs = duracionMs)
+    }
+
     // ---- uso interno (lo llama OsmMapa) ----
 
     internal fun adjuntar(vista: MapView) {
@@ -229,6 +243,8 @@ class EstadoCamaraOsm(
 
     companion object {
         const val ZOOM_POR_DEFECTO = 18.5
+        const val ZOOM_MINIMO = 3.0
+        const val ZOOM_MAXIMO = 20.0
         private const val DELTA_CALIBRACION = 0.01
     }
 }

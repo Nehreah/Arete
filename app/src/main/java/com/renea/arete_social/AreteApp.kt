@@ -34,27 +34,34 @@ class AreteApp : Application() {
 
     /**
      * Configuración global de OSMDroid. El userAgent es obligatorio: los servidores de teselas
-     * de OpenStreetMap bloquean los clientes anónimos. La caché vive en cacheDir, así que no se
-     * necesita permiso de almacenamiento y el sistema puede liberarla si falta espacio.
+     * de OpenStreetMap bloquean los clientes anónimos.
      *
-     * Rendimiento y offline:
-     * - 300 MB de caché en disco para que amplias áreas queden disponibles sin red.
-     * - 4 hilos de descarga paralela + cola de 40 teselas: reduce el tiempo de carga al hacer
-     *   zoom out o panear hacia zonas nuevas.
-     * - expirationExtendedDuration = Long.MAX_VALUE / 2: las teselas en disco nunca "caducan",
-     *   así el modo offline siempre usa lo que haya aunque lleve meses descargado.
+     * Persistencia y resiliencia offline:
+     * - Las teselas se almacenan en `filesDir/osmdroid` para que el sistema operativo o limpiadores
+     *   de Xiaomi/Samsung no las borren al limpiar la caché temporal.
+     * - Parámetros adaptativos: en dispositivos de gama baja (<= 3GB RAM o Android Go) se reducen
+     *   los hilos a 2 y la cola a 16 para prevenir picos de memoria (OOM).
      */
     private fun configurarOsmdroid() {
+        val esGamaBaja = com.renea.arete_social.util.GestorCompatibilidadFabricantes.esDispositivoGamaBaja(this)
+
         Configuration.getInstance().apply {
             userAgentValue = "$packageName/${BuildConfig.VERSION_NAME}"
-            osmdroidBasePath = File(cacheDir, "osmdroid")
-            osmdroidTileCache = File(cacheDir, "osmdroid/tiles")
-            // Caché en disco: 300 MB activos, recortar a 250 MB cuando se supere el límite.
-            tileFileSystemCacheMaxBytes  = 300L * 1024 * 1024
-            tileFileSystemCacheTrimBytes = 250L * 1024 * 1024
-            // Descargas más rápidas: 4 hilos paralelos y cola más amplia.
-            tileDownloadThreads      = 4
-            tileDownloadMaxQueueSize = 40
+            osmdroidBasePath = File(filesDir, "osmdroid")
+            osmdroidTileCache = File(filesDir, "osmdroid/tiles")
+
+            if (esGamaBaja) {
+                tileFileSystemCacheMaxBytes  = 150L * 1024 * 1024
+                tileFileSystemCacheTrimBytes = 120L * 1024 * 1024
+                tileDownloadThreads          = 2
+                tileDownloadMaxQueueSize     = 16
+            } else {
+                tileFileSystemCacheMaxBytes  = 350L * 1024 * 1024
+                tileFileSystemCacheTrimBytes = 300L * 1024 * 1024
+                tileDownloadThreads          = 4
+                tileDownloadMaxQueueSize     = 40
+            }
+
             // Las teselas guardadas no caducan → modo offline siempre las sirve.
             expirationExtendedDuration = Long.MAX_VALUE / 2
         }

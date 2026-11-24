@@ -67,8 +67,28 @@ class CifradorE2eeAndroid(
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
         }.getOrElse { error ->
-            Log.e(TAG, "Android Keystore no disponible para E2EE; fallando cerrado por seguridad: ${error.message}", error)
-            throw CifradoE2eeException("Almacén seguro de claves Keystore no disponible: ${error.message}", error)
+            Log.e(TAG, "Android Keystore corrupto o no disponible para E2EE: ${error.message}. Intentando auto-recuperación.", error)
+            // En Samsung/Xiaomi, tras actualización de OS o cambio de PIN, la clave maestra puede quedar inaccesible.
+            // Si el archivo existente no puede descifrarse, se recrea para no bloquear el inicio ni crashear la app.
+            runCatching {
+                val prefsFile = java.io.File(ctx.filesDir.parent, "shared_prefs/$PREFS_NAME_CIFRADO.xml")
+                if (prefsFile.exists()) {
+                    prefsFile.delete()
+                }
+                val masterKey = MasterKey.Builder(ctx)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
+                EncryptedSharedPreferences.create(
+                    ctx,
+                    PREFS_NAME_CIFRADO,
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                )
+            }.getOrElse { recoverError ->
+                Log.e(TAG, "Recuperación de Keystore falló cerrado por seguridad: ${recoverError.message}", recoverError)
+                throw CifradoE2eeException("Almacén seguro de claves Keystore no disponible: ${recoverError.message}", recoverError)
+            }
         }
     }
 
