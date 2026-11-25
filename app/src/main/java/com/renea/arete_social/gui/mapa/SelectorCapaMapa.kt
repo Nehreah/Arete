@@ -82,91 +82,118 @@ fun SelectorCapaMapa(
             Text("🗺️", fontSize = 20.sp)
         }
 
-        if (abierto) {
-            Popup(
-                alignment = Alignment.TopEnd,
-                offset = IntOffset(0, separacionPx),
-                onDismissRequest = { abierto = false },
-                properties = PopupProperties(focusable = true)
+        MenuCapasPopup(
+            abierto = abierto,
+            onDismissRequest = { abierto = false },
+            capaActual = capaActual,
+            onCapaSeleccionada = {
+                onCapaSeleccionada(it)
+                abierto = false
+            },
+            onDescargarMapa = {
+                abierto = false
+                onDescargarMapa()
+            }
+        )
+    }
+}
+
+/**
+ * Menú desplegable flotante de capas de mapa y descarga offline.
+ */
+@Composable
+fun MenuCapasPopup(
+    abierto: Boolean,
+    onDismissRequest: () -> Unit,
+    capaActual: CapaMapa,
+    onCapaSeleccionada: (CapaMapa) -> Unit,
+    onDescargarMapa: () -> Unit,
+    offsetY: androidx.compose.ui.unit.Dp = 52.dp
+) {
+    val radarColors = LocalRadarColors.current
+    val separacionPx = with(LocalDensity.current) { offsetY.roundToPx() }
+
+    if (abierto) {
+        Popup(
+            alignment = Alignment.TopEnd,
+            offset = IntOffset(0, separacionPx),
+            onDismissRequest = onDismissRequest,
+            properties = PopupProperties(focusable = true)
+        ) {
+            val visible = remember { MutableTransitionState(false).apply { targetState = true } }
+            AnimatedVisibility(
+                visibleState = visible,
+                enter = fadeIn() + slideInVertically { -it / 4 }
             ) {
-                // Animación de entrada del menú (el Popup no anima su salida).
-                val visible = remember { MutableTransitionState(false).apply { targetState = true } }
-                AnimatedVisibility(
-                    visibleState = visible,
-                    enter = fadeIn() + slideInVertically { -it / 4 }
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp,
+                    shadowElevation = 12.dp,
+                    modifier = Modifier
+                        .widthIn(min = 180.dp)
+                        .border(1.dp, radarColors.verde.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 8.dp,
-                        shadowElevation = 12.dp,
-                        modifier = Modifier
-                            .widthIn(min = 180.dp)
-                            .border(1.dp, radarColors.verde.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    Column(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(0.dp)
-                        ) {
-                            Text(
-                                text = "MAPA",
-                                color = radarColors.muted,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                            )
-                            CapaMapa.entries.forEach { capa ->
-                                val activa = capa == capaActual
-                                Row(
-                                    modifier = Modifier
-                                        .widthIn(min = 180.dp)
-                                        .background(
-                                            if (activa) radarColors.verde.copy(alpha = 0.18f)
-                                            else Color.Transparent
-                                        )
-                                        .clickable {
-                                            onCapaSeleccionada(capa)
-                                            abierto = false
-                                        }
-                                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(capa.icono, fontSize = 18.sp)
-                                    Text(
-                                        text = capa.etiqueta,
-                                        fontSize = 13.sp,
-                                        fontWeight = if (activa) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (activa) radarColors.verdeBrillante
-                                                else MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
-
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 4.dp),
-                                color = radarColors.verde.copy(alpha = 0.25f)
-                            )
-
+                        Text(
+                            text = "MAPA",
+                            color = radarColors.muted,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        )
+                        CapaMapa.entries.forEach { capa ->
+                            val activa = capa == capaActual
                             Row(
                                 modifier = Modifier
                                     .widthIn(min = 180.dp)
+                                    .background(
+                                        if (activa) radarColors.verde.copy(alpha = 0.18f)
+                                        else Color.Transparent
+                                    )
                                     .clickable {
-                                        abierto = false
-                                        onDescargarMapa()
+                                        onCapaSeleccionada(capa)
                                     }
                                     .padding(horizontal = 16.dp, vertical = 10.dp),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("📥", fontSize = 18.sp)
+                                Text(capa.icono, fontSize = 18.sp)
                                 Text(
-                                    text = "Descargar mapa",
+                                    text = capa.etiqueta,
                                     fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    fontWeight = if (activa) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (activa) radarColors.verdeBrillante
+                                            else MaterialTheme.colorScheme.onSurface
                                 )
                             }
+                        }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = radarColors.verde.copy(alpha = 0.25f)
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .widthIn(min = 180.dp)
+                                .clickable {
+                                    onDescargarMapa()
+                                }
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("📥", fontSize = 18.sp)
+                            Text(
+                                text = "Descargar mapa",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
                 }

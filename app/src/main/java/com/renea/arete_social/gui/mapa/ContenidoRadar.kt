@@ -92,6 +92,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.renea.arete_social.gui.theme.LocalCicloDia
 import com.renea.arete_social.gui.theme.LocalRadarColors
+import kotlin.math.abs
 
 /**
  * Contenido puro del Radar y del mapa (OSMDroid, vía [OsmMapa]) extraído de [MapaScreen.kt]
@@ -558,33 +559,48 @@ fun ContenidoRadar(
                     }
                 }
 
-                Text(
-                    text = "Arete",
-                    color = radarColors.verdeBrillante,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.2.sp
-                )
-
-                // Los tres accesos: círculos pequeños apilados que se despliegan al pulsar.
-                AccesosMapaApilados(
-                    accesos = listOf(
-                        AccesoMapa("personas", "◎", "Cercanos"),
-                        AccesoMapa("salas", "▤", "Sala general"),
-                        AccesoMapa("libreria", "📚", "Librería")
-                    ),
-                    idActivo = panelMapaActivo,
-                    onSeleccionar = { id -> panelMapaActivo = if (panelMapaActivo == id) null else id }
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Aréte",
+                            color = radarColors.verdeBrillante,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.2.sp
+                        )
+                        Surface(
+                            color = Color(0xFFE65100).copy(alpha = 0.35f),
+                            shape = RoundedCornerShape(4.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF9800).copy(alpha = 0.7f))
+                        ) {
+                            Text(
+                                text = "ALPHA",
+                                color = Color(0xFFFFB74D),
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Versión alpha · No lanzada",
+                        color = Color.White.copy(alpha = 0.65f),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
             // Panel compacto de personas cercanas.
             panelMapaActivo?.takeIf { it == "personas" }?.let { panel ->
                 Surface(
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 12.dp, top = 136.dp, end = 20.dp)
-                        .width(278.dp)
+                        .align(Alignment.TopEnd)
+                        .padding(end = 12.dp, top = if (!gpsHabilitado) 176.dp else 116.dp)
+                        .width(280.dp)
                         .heightIn(max = 350.dp),
                     shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
@@ -670,8 +686,8 @@ fun ContenidoRadar(
                     onAlternarAmpliado = { chatAmpliado = true },
                     onCerrar = { panelMapaActivo = null },
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 12.dp, top = 136.dp, end = 12.dp)
+                        .align(Alignment.TopEnd)
+                        .padding(end = 12.dp, top = if (!gpsHabilitado) 176.dp else 116.dp)
                         .width(340.dp)
                         .height(420.dp)
                 )
@@ -680,8 +696,8 @@ fun ContenidoRadar(
             if (panelMapaActivo == "libreria") {
                 Surface(
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 12.dp, top = 136.dp, end = 20.dp)
+                        .align(Alignment.TopEnd)
+                        .padding(end = 12.dp, top = if (!gpsHabilitado) 176.dp else 116.dp)
                         .width(286.dp)
                         .heightIn(max = 380.dp),
                     shape = RoundedCornerShape(18.dp),
@@ -809,36 +825,12 @@ fun ContenidoRadar(
                 )
             }
 
-            // Controles flotantes: arriba a la derecha el botón único de Mapa (capas y descarga) con la
-            // brújula debajo; abajo al centro Alejar · Centrar · Acercar; abajo a la derecha, Agregar evento.
+            // Controles flotantes superiores:
             val coroutineScope = rememberCoroutineScope()
 
-            // Brújula táctica interactiva (orientación al Norte 100% Free Software)
-            BrujulaTactico(
-                bearing = estadoCamara.bearing,
-                onClick = {
-                    coroutineScope.launch {
-                        estadoCamara.orientarAlNorte()
-                    }
-                },
-                siempreVisible = true,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(end = 16.dp, top = if (!gpsHabilitado) 128.dp else 72.dp)
-            )
-
-            // Botón único de Mapa: al pulsarlo se elige la capa o se descarga el mapa offline.
-            SelectorCapaMapa(
-                capaActual = capaSeleccionada,
-                onCapaSeleccionada = { capaSeleccionada = it },
-                onDescargarMapa = { mostrarDialogoDescarga = true },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(end = 16.dp, top = if (!gpsHabilitado) 72.dp else 16.dp)
-            )
-
-            // Alejar (izquierda) · Centrar (medio) · Acercar (derecha)
+            // 1. Cápsula central superior: Alejar · Brújula/Centrar · Acercar (a la misma altura que la foto de perfil)
             BarraControlesCamara(
+                bearing = estadoCamara.bearing,
                 siguiendoUsuario = camaraCentradaEnUsuario,
                 onZoomIn = {
                     coroutineScope.launch {
@@ -854,22 +846,61 @@ fun ContenidoRadar(
                     estado.ubicacionPropia?.let { loc ->
                         camaraCentradaEnUsuario = true
                         coroutineScope.launch {
-                            // Conserva el zoom y el giro actuales.
+                            if (abs(estadoCamara.bearing) > 1.5f && abs(estadoCamara.bearing - 360f) > 1.5f) {
+                                estadoCamara.orientarAlNorte()
+                            }
                             estadoCamara.animar(PuntoMapa(loc.latitud, loc.longitud), duracionMs = 600L)
                         }
                     }
                 },
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 24.dp)
+                    .align(Alignment.TopCenter)
+                    .padding(top = if (!gpsHabilitado) 68.dp else 12.dp)
             )
 
-            // Agregar evento (+): el lugar se elige primero sobre el mapa; el formulario viene después.
-            BotonCrearEvento(
-                onClick = { onAbrirPantallaSecundaria(PantallaSecundaria.SeleccionarLugarEvento()) },
+            // 2. Columna superior derecha: Botón Agregar Evento (+) y debajo los 4 accesos rápidos
+            Column(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 28.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(end = 12.dp, top = if (!gpsHabilitado) 68.dp else 12.dp),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Botón Agregar Evento (+) en la esquina superior derecha
+                BotonCrearEvento(
+                    onClick = { onAbrirPantallaSecundaria(PantallaSecundaria.SeleccionarLugarEvento()) }
+                )
+
+                // 4 accesos rápidos agrupados bajo el botón de agregar evento (Mapa, Cercanos, Salas, Librería)
+                AccesosMapaApilados(
+                    accesos = listOf(
+                        AccesoMapa("mapa", "🗺️", "Mapa"),
+                        AccesoMapa("personas", "◎", "Cercanos"),
+                        AccesoMapa("salas", "▤", "Sala general"),
+                        AccesoMapa("libreria", "📚", "Librería")
+                    ),
+                    idActivo = panelMapaActivo,
+                    onSeleccionar = { id ->
+                        panelMapaActivo = if (panelMapaActivo == id) null else id
+                    },
+                    desdeLaDerecha = true
+                )
+            }
+
+            // Menú de mapa (capas y descarga offline) desplegable al pulsar el acceso "mapa"
+            MenuCapasPopup(
+                abierto = panelMapaActivo == "mapa",
+                onDismissRequest = { panelMapaActivo = null },
+                capaActual = capaSeleccionada,
+                onCapaSeleccionada = {
+                    capaSeleccionada = it
+                    panelMapaActivo = null
+                },
+                onDescargarMapa = {
+                    panelMapaActivo = null
+                    mostrarDialogoDescarga = true
+                },
+                offsetY = if (!gpsHabilitado) 176.dp else 116.dp
             )
 
             // ====================================================

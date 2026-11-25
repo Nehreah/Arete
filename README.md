@@ -34,10 +34,12 @@
 > - ⚡ **[Enlace directo crudo (Raw)](https://github.com/Nehreah/Arete/raw/main/docs/arete.apk)**
 > - 🌍 **[Visitar la página web del proyecto](https://nehreah.github.io/Arete/)**
 
+> ⚠️ **Aviso de Estado del Proyecto**: Esta versión es **Alpha** y **no ha sido lanzada oficialmente**. Se encuentra en desarrollo activo y pruebas comunitarias experimentales.
+
 | Característica | Detalle |
 |---|---|
-| **Archivo de descarga** | `arete.apk` (listo para instalar) |
-| **Versión** | `1.0.0` (Génesis — 100% Local / Red de Malla P2P) |
+| **Archivo de descarga** | `arete.apk` (compilación experimental) |
+| **Versión** | `Alpha` (Génesis — Pre-lanzamiento / No lanzada) |
 | **Requisito del teléfono** | Cualquier celular con Android 8.0 o superior |
 | **Costo** | 100% Gratis, sin pagos, sin suscripciones y sin anuncios |
 | **Conexión requerida** | **Ninguna**. Funciona sin internet, sin wifi y sin saldo móvil |
