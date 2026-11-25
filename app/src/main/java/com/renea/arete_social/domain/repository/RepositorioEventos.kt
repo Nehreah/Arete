@@ -23,6 +23,7 @@ interface RepositorioEventos {
     fun observarEvento(id: String): Flow<Evento?>
     suspend fun unirse(eventoId: String, usuarioId: String)
     suspend fun salir(eventoId: String, usuarioId: String)
+    suspend fun expulsarParticipante(eventoId: String, usuarioId: String) = salir(eventoId, usuarioId)
     suspend fun actualizar(
         id: String,
         nombre: String,

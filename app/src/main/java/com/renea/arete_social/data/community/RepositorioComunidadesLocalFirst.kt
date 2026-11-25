@@ -194,6 +194,18 @@ class RepositorioComunidadesLocalFirst(
         remoteRepo?.let { runCatching { withTimeoutOrNull(1000.milliseconds) { it.salirDeComunidad(comunidadId, usuarioId) } } }
     }
 
+    override suspend fun expulsarMiembro(comunidadId: String, usuarioId: String) {
+        val local = localRepo.getCommunity(comunidadId)
+        if (local != null) {
+            localRepo.removeLocalMember(comunidadId, usuarioId)
+            runCatching {
+                syncManagerProveedor?.invoke()?.emitirSalidaMiembro(comunidadId, usuarioId)
+            }
+            return
+        }
+        remoteRepo?.let { runCatching { withTimeoutOrNull(1000.milliseconds) { it.expulsarMiembro(comunidadId, usuarioId) } } }
+    }
+
     override suspend fun transferirLiderazgo(comunidadId: String, nuevoLiderId: String) {
         val local = localRepo.getCommunity(comunidadId)
         if (local != null) {

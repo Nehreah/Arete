@@ -18,6 +18,7 @@ interface RepositorioComunidades {
     fun observarComunidad(id: String): Flow<Comunidad?>
     suspend fun unirseAComunidad(comunidadId: String, usuarioId: String)
     suspend fun salirDeComunidad(comunidadId: String, usuarioId: String)
+    suspend fun expulsarMiembro(comunidadId: String, usuarioId: String)
     suspend fun transferirLiderazgo(comunidadId: String, nuevoLiderId: String)
     suspend fun asignarRol(comunidadId: String, usuarioId: String, rol: String)
     suspend fun obtenerRolMiembro(comunidadId: String, usuarioId: String): String?

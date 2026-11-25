@@ -18,9 +18,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -490,6 +492,22 @@ fun EventoDetalleScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Text("👤 Quitar rol de Admin (pasar a Asistente)")
+                                    }
+                                }
+
+                                if (actual.puedeGestionar) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            viewModel.expulsarParticipante(part.usuarioId)
+                                            participanteParaGestionar = null
+                                        },
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = Color(0xFFFF5252)
+                                        ),
+                                        border = BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.7f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("🚪 Expulsar del evento", color = Color(0xFFFF5252))
                                     }
                                 }
                             }

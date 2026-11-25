@@ -475,6 +475,9 @@ class CachePerfilLocal(
             foto = rutaArchivo
             modificado = true
         }
+        if (actual.estados.any { it.fotoHash == hashSha256 }) {
+            modificado = true
+        }
         if (modificado) {
             guardarRecibido(actual.copy(foto = foto, portada = portada))
         }

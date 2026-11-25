@@ -195,13 +195,27 @@ fun TarjetaFotoMatrix(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-            } else {
+            } else if (publicacion.contenido.isNotBlank()) {
                 AsyncImage(
                     model = publicacion.contenido,
                     contentDescription = "Foto Digital",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "📡 SINCRONIZANDO FOTO...",
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
             EfectoFiltroMatrix(modifier = Modifier.fillMaxSize())

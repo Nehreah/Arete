@@ -176,7 +176,7 @@ fun ChatScreen(
                 // VISTA HUB: 3 PESTAÑAS SEGÚN MOCKUP Chats.jpeg
                 // ====================================================
                 Column(
-                    modifier = modifier
+                    modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
@@ -525,7 +525,7 @@ fun ChatScreen(
                 // VISTA DE CONVERSACIÓN (CHAT ACTIVO)
                 // ====================================================
                 Column(
-                    modifier = modifier
+                    modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {

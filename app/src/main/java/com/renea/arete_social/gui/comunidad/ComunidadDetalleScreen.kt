@@ -208,6 +208,7 @@ fun ComunidadDetalleScreen(
                     onCrearEventoComunitario = onCrearEventoComunitario,
                     onAprobarSolicitud = { id -> viewModel.aprobarSolicitud(id) },
                     onRechazarSolicitud = { id -> viewModel.rechazarSolicitud(id) },
+                    onExpulsarMiembro = { id -> viewModel.expulsarMiembro(id) },
                     onDescargarArchivo = { archivoId, peerId -> viewModel.descargarArchivoLan(archivoId, peerId) },
                     onSincronizarArchivos = { peerId -> viewModel.solicitarArchivosLan(peerId) }
                 )
@@ -254,6 +255,7 @@ private fun ComunidadDetalleContenido(
     onCrearEventoComunitario: () -> Unit,
     onAprobarSolicitud: (String) -> Unit = {},
     onRechazarSolicitud: (String) -> Unit = {},
+    onExpulsarMiembro: (String) -> Unit = {},
     onDescargarArchivo: (String, String) -> Unit = { _, _ -> },
     onSincronizarArchivos: (String) -> Unit = {}
 ) {
@@ -891,7 +893,7 @@ private fun ComunidadDetalleContenido(
                             items(miembros, key = { it.id }) { miembro ->
                                 MiembroCardItem(
                                     miembro = miembro,
-                                    esLider = RolComunidad.desdeCodigo(miRol).esLiderODueno(),
+                                    esLider = RolComunidad.desdeCodigo(miRol).esLiderODueno() || puedeGestionar,
                                     esPropio = miembro.id == usuarioIdActual,
                                     onVerPerfil = {
                                         mostrarDialogoMiembros = false
@@ -1027,6 +1029,22 @@ private fun ComunidadDetalleContenido(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("👑 Transferir liderazgo")
+                        }
+                    }
+
+                    if (esLider || puedeGestionar) {
+                        OutlinedButton(
+                            onClick = {
+                                onExpulsarMiembro(m.id)
+                                miembroParaGestionar = null
+                            },
+                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color(0xFFFF5252)
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.7f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("🚪 Expulsar de la comunidad", color = Color(0xFFFF5252))
                         }
                     }
                 }

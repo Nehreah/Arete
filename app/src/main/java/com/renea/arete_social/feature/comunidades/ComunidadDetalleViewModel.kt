@@ -476,6 +476,29 @@ class ComunidadDetalleViewModel(
         }
     }
 
+    /**
+     * Expulsa a un miembro de la comunidad.
+     * Solo disponible para el líder o administradores autorizados.
+     */
+    fun expulsarMiembro(miembroId: String) {
+        val actual = _estado.value
+        if (actual !is ComunidadDetalleUiState.Listo) return
+        if (!actual.puedeGestionar) return
+
+        // Actualización optimista de la interfaz
+        _estado.value = actual.copy(
+            miembros = actual.miembros.filterNot { it.id == miembroId }
+        )
+
+        viewModelScope.launch {
+            runCatching {
+                repositorioComunidades.expulsarMiembro(comunidadId, miembroId)
+            }.onSuccess {
+                cargar()
+            }
+        }
+    }
+
 
     private fun formatearFecha(timestamp: Long): String {
         return try {

@@ -30,6 +30,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.builtins.ListSerializer
 import com.renea.arete_social.feature.comunidades.PublicacionMuro
 import com.renea.arete_social.feature.comunidades.data.GestorMuroComunidades
+import com.renea.arete_social.data.local.media.AlmacenMediaPerfil
+import java.io.File
 import java.util.UUID
 
 /**
@@ -175,13 +177,50 @@ class CommunityMeshSyncManager(
     }
 
     /**
+     * Prepara una publicación para su transmisión por la malla, convirtiendo
+     * rutas de archivo locales a data URLs Base64 para que los datos viajen
+     * al dispositivo receptor.
+     */
+    private fun prepararPublicacionParaEnvio(pub: PublicacionMuro): PublicacionMuro {
+        val uri = pub.imagenUri
+        if (!uri.isNullOrBlank() && (uri.startsWith("/") || uri.startsWith("file:"))) {
+            val file = File(uri.removePrefix("file://"))
+            if (file.exists()) {
+                val bytes = runCatching { file.readBytes() }.getOrNull()
+                if (bytes != null && bytes.isNotEmpty()) {
+                    val mime = if (uri.endsWith(".png", ignoreCase = true)) "image/png" else "image/jpeg"
+                    val b64 = "data:$mime;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    return pub.copy(imagenUri = b64)
+                }
+            }
+        }
+        return pub
+    }
+
+    /**
+     * Procesa una publicación recibida de la malla: si incluye una data URL Base64
+     * en imagenUri, la guarda en el almacenamiento local permanente de este dispositivo.
+     */
+    private fun procesarPublicacionRecibida(pub: PublicacionMuro): PublicacionMuro {
+        val uri = pub.imagenUri
+        if (!uri.isNullOrBlank() && uri.startsWith("data:image/")) {
+            val rutaLocal = AlmacenMediaPerfil.migrarSiEsDataUrl(uri, esAvatar = false)
+            if (!rutaLocal.isNullOrBlank()) {
+                return pub.copy(imagenUri = rutaLocal)
+            }
+        }
+        return pub
+    }
+
+    /**
      * Emite una nueva publicación del muro/gaceta a todos los pares de la comunidad.
      */
     fun emitirPublicacion(communityIdHex: String, publicacion: PublicacionMuro) {
         val remitenteId = miUsuarioIdProveedor() ?: return
         scope.launch {
             runCatching {
-                val jsonPub = json.encodeToString(PublicacionMuro.serializer(), publicacion)
+                val pubParaEnviar = prepararPublicacionParaEnvio(publicacion)
+                val jsonPub = json.encodeToString(PublicacionMuro.serializer(), pubParaEnviar)
                 val paquete = PaqueteMesh(
                     id = UUID.randomUUID().toString(),
                     chatId = "$CHAT_PREFIX$communityIdHex",
@@ -202,7 +241,8 @@ class CommunityMeshSyncManager(
             runCatching {
                 val publicaciones = GestorMuroComunidades.obtenerPublicaciones(communityIdHex)
                 if (publicaciones.isEmpty()) return@launch
-                val jsonPubs = json.encodeToString(ListSerializer(PublicacionMuro.serializer()), publicaciones)
+                val pubsParaEnviar = publicaciones.map { prepararPublicacionParaEnvio(it) }
+                val jsonPubs = json.encodeToString(ListSerializer(PublicacionMuro.serializer()), pubsParaEnviar)
                 val paquete = PaqueteMesh(
                     id = UUID.randomUUID().toString(),
                     chatId = "$CHAT_PREFIX$communityIdHex",
@@ -488,7 +528,8 @@ class CommunityMeshSyncManager(
                             val jsonPub = payload.substring(sepIndex + 1)
                             val pub = runCatching { json.decodeFromString(PublicacionMuro.serializer(), jsonPub) }.getOrNull()
                             if (pub != null) {
-                                GestorMuroComunidades.guardarPublicacion(cIdHex, pub)
+                                val pubFinal = procesarPublicacionRecibida(pub)
+                                GestorMuroComunidades.guardarPublicacion(cIdHex, pubFinal)
                                 _eventosSincronizacion.emit(SyncEvent.PublicacionesActualizadas(cIdHex))
                                 // Responder con nuestras publicaciones conocidas para sincronizar bidireccionalmente
                                 emitirTodasLasPublicaciones(cIdHex, destinatarioId = paquete.remitenteId)
@@ -508,7 +549,8 @@ class CommunityMeshSyncManager(
                             }.getOrDefault(emptyList())
                             if (pubs.isNotEmpty()) {
                                 for (p in pubs) {
-                                    GestorMuroComunidades.guardarPublicacion(cIdHex, p)
+                                    val pubFinal = procesarPublicacionRecibida(p)
+                                    GestorMuroComunidades.guardarPublicacion(cIdHex, pubFinal)
                                 }
                                 _eventosSincronizacion.emit(SyncEvent.PublicacionesActualizadas(cIdHex))
                             }

@@ -133,6 +133,28 @@ class EventoDetalleViewModel(
         }
     }
 
+    fun expulsarParticipante(asistenteId: String) {
+        val actual = _estado.value
+        if (actual !is EventoDetalleUiState.Listo) return
+        if (!actual.puedeGestionar) return
+
+        // Actualización optimista
+        _estado.value = actual.copy(
+            evento = actual.evento.copy(
+                participantesIds = actual.evento.participantesIds.filterNot { it == asistenteId }
+            ),
+            participantesConRoles = actual.participantesConRoles.filterNot { it.usuarioId == asistenteId }
+        )
+
+        viewModelScope.launch {
+            runCatching {
+                repositorioEventos.expulsarParticipante(eventoId, asistenteId)
+            }.onSuccess {
+                cargar()
+            }
+        }
+    }
+
     fun eliminar(onEliminado: () -> Unit) {
         viewModelScope.launch {
             runCatching {

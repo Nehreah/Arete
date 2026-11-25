@@ -149,6 +149,21 @@ class RepositorioEventosLocalFirst(
         remoteRepo?.let { runCatching { withTimeoutOrNull(1000L) { it.salir(eventoId, usuarioId) } } }
     }
 
+    override suspend fun expulsarParticipante(eventoId: String, usuarioId: String) {
+        participantDao.removeParticipant(eventoId, usuarioId)
+        val entity = eventDao.getEvent(eventoId)
+        if (entity != null) {
+            val updated = entity.copy(
+                version = entity.version + 1,
+                updatedAtMs = System.currentTimeMillis()
+            )
+            eventDao.upsertEvent(updated)
+            runCatching { gestorEventosBleProveedor?.invoke()?.emitirResumenEventos() }
+            notificarActualizado()
+        }
+        remoteRepo?.let { runCatching { withTimeoutOrNull(1000L) { it.expulsarParticipante(eventoId, usuarioId) } } }
+    }
+
     override suspend fun actualizar(
         id: String,
         nombre: String,

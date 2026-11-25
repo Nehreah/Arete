@@ -226,8 +226,8 @@ class ResolverPerfilesLocal(
                     signoZodiacal = usuarioPrevio?.signoZodiacal
                 )
             )
-            cachePerfilLocal?.actualizarRutaMedia(usuarioId, hashSha256, rutaArchivo)
         }
+        cachePerfilLocal?.actualizarRutaMedia(usuarioId, hashSha256, rutaArchivo)
     }
 
     override suspend fun podarDesconocidos(limiteTimestamp: Long) {

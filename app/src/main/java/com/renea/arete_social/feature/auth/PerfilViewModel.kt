@@ -214,8 +214,14 @@ class PerfilViewModel(
     fun publicarFotoMatrix(fotoBase64OUrl: String) {
         val miNombre = (_estado.value as? PerfilUiState.Listo)?.usuario?.nombre ?: "Usuario"
 
-        // 1. Guardado Local-First inmediato
-        val pubLocal = GestorPerfilEfemero.agregarPublicacionFoto(usuarioId, miNombre, fotoBase64OUrl)
+        // 1. Persistencia segura en disco y generación de miniatura/hash
+        val rutaGuardada = com.renea.arete_social.data.local.media.AlmacenMediaPerfil.migrarSiEsDataUrl(
+            fotoBase64OUrl,
+            esAvatar = false
+        ) ?: fotoBase64OUrl
+
+        // 2. Guardado Local-First inmediato
+        val pubLocal = GestorPerfilEfemero.agregarPublicacionFoto(usuarioId, miNombre, rutaGuardada)
         if (pubLocal != null) {
             _publicaciones.update { listOf(pubLocal) + it.filterNot { p -> p.id == pubLocal.id } }
             gestorLlamadas?.transmitirPublicacionPerfil(pubLocal)

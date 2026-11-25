@@ -84,7 +84,8 @@ class GestorEventosBle(
         val firmaOrganizador: String? = null,
         val version: Long = 1L,
         val fotoUrl: String? = null,
-        val fotoHash: String? = null
+        val fotoHash: String? = null,
+        val participantes: List<String> = emptyList()
     )
 
     companion object {
@@ -316,6 +317,7 @@ class GestorEventosBle(
         }
 
         val miId = miIdProveedor() ?: return
+        val participantesActuales = database.eventParticipantDao().getParticipants(evento.id).map { it.usuarioId }
         val payload = EventoPayload(
             id = evento.id,
             organizerIkHex = evento.organizerIkHex,
@@ -332,7 +334,8 @@ class GestorEventosBle(
             firmaOrganizador = evento.firmaOrganizador,
             version = evento.version,
             fotoUrl = evento.fotoUrl,
-            fotoHash = evento.fotoHash
+            fotoHash = evento.fotoHash,
+            participantes = participantesActuales
         )
 
         val jsonStr = json.encodeToString(EventoPayload.serializer(), payload)
@@ -378,6 +381,31 @@ class GestorEventosBle(
                 fotoHash = payload.fotoHash
             )
             database.eventDao().upsertEvent(entity)
+
+            // Sincronizar participantes si el organizador los envió
+            if (payload.participantes.isNotEmpty()) {
+                val existentes = database.eventParticipantDao().getParticipants(payload.id)
+                // Eliminar participantes retirados/expulsados
+                existentes.forEach { p ->
+                    if (!payload.participantes.contains(p.usuarioId)) {
+                        database.eventParticipantDao().removeParticipant(payload.id, p.usuarioId)
+                    }
+                }
+                // Añadir participantes activos
+                payload.participantes.forEach { uid ->
+                    if (existentes.none { it.usuarioId == uid }) {
+                        database.eventParticipantDao().upsertParticipant(
+                            com.renea.arete_social.data.local.room.entity.EventParticipantEntity(
+                                eventoId = payload.id,
+                                usuarioId = uid,
+                                rol = "ASISTENTE",
+                                updatedAtMs = payload.updatedAtMs
+                            )
+                        )
+                    }
+                }
+            }
+
             SyncLogger.i(TAG, "Evento ${payload.id} ('${payload.title}') guardado/actualizado vía P2P (cancelado=${payload.isCancelled})")
             // Disparar callback para que el repositorio emita eventosActualizados →
             // MapaViewModel y ComunidadDetalleViewModel se refrescan sin necesitar un

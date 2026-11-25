@@ -363,10 +363,10 @@ fun ContenidoRadar(
         animationSpec = tween(280),
         label = "peso_chat_ampliado"
     )
-    // En Sala general el teclado NO debe empujar ni redimensionar nada de esta pantalla.
-    if (panelMapaActivo == "salas") SinReajusteDeTeclado()
+    // En Sala general flotante el teclado no empuja el mapa; en modo ampliado se permite el ajuste del chat.
+    if (panelMapaActivo == "salas" && !chatAmpliado) SinReajusteDeTeclado()
 
-    Column(modifier = modifier.fillMaxSize().consumeWindowInsets(WindowInsets.ime)) {
+    Column(modifier = modifier.fillMaxSize()) {
         // Mitad superior: chat ampliado de Sala general.
         if (chatGeneralVm != null && (chatAmpliadoVisible || pesoChat > 0.02f)) {
             PanelChatGeneral(
@@ -1181,47 +1181,121 @@ private fun PanelChatGeneral(
     val radarColors = LocalRadarColors.current
     Surface(
         modifier = modifier,
-        shape = if (ampliado) RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp) else RoundedCornerShape(16.dp),
+        shape = if (ampliado) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
         tonalElevation = 8.dp,
-        shadowElevation = 14.dp,
-        border = androidx.compose.foundation.BorderStroke(1.dp, radarColors.verde.copy(alpha = 0.65f))
+        shadowElevation = if (ampliado) 6.dp else 14.dp,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (ampliado) radarColors.verde.copy(alpha = 0.35f) else radarColors.verde.copy(alpha = 0.65f)
+        )
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(if (ampliado) Modifier.statusBarsPadding() else Modifier)
+            modifier = Modifier.fillMaxSize()
         ) {
+            // Cabecera única y táctica de Sala General
             Row(
-                modifier = Modifier.fillMaxWidth().background(radarColors.panel).padding(horizontal = 12.dp, vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(radarColors.panel)
+                    .padding(horizontal = 14.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("SALA GENERAL", color = radarColors.verdeBrillante, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text(
-                        if (ampliado) "Chat público · pantalla dividida" else "Chat público · en el mapa",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 10.sp
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(radarColors.verde.copy(alpha = 0.16f))
+                            .border(1.dp, radarColors.verde.copy(alpha = 0.55f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("💬", fontSize = 16.sp)
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "SALA GENERAL",
+                                color = radarColors.verdeBrillante,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp
+                            )
+                            Surface(
+                                color = radarColors.verde.copy(alpha = 0.22f),
+                                shape = RoundedCornerShape(4.dp),
+                                border = androidx.compose.foundation.BorderStroke(0.8.dp, radarColors.verde.copy(alpha = 0.55f))
+                            ) {
+                                Text(
+                                    text = if (ampliado) "MITAD" else "RADAR",
+                                    color = radarColors.verdeBrillante,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = if (ampliado) "Chat público · Pantalla dividida a la mitad" else "Chat público · En el mapa",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
+                    }
                 }
-                // Botón discreto para ampliar / encoger el chat.
-                Text(
-                    text = if (ampliado) "⤡" else "⤢",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    fontSize = 15.sp,
-                    modifier = Modifier
-                        .clickable { onAlternarAmpliado() }
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                )
-                Text(
-                    "✕",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 18.sp,
-                    modifier = Modifier.clickable { onCerrar() }.padding(start = 4.dp, top = 2.dp, bottom = 2.dp)
-                )
+
+                // Botones tácticos de control: Ampliar/Reducir y Cerrar
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Botón para alternar ampliado (50/50) vs flotante
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
+                            .border(1.dp, radarColors.verde.copy(alpha = 0.4f), CircleShape)
+                            .clickable { onAlternarAmpliado() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (ampliado) "⤡" else "⤢",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Botón para cerrar la sala
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), CircleShape)
+                            .clickable { onCerrar() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "✕",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
-            androidx.compose.material3.HorizontalDivider(color = radarColors.verde.copy(alpha = 0.25f))
+            androidx.compose.material3.HorizontalDivider(color = radarColors.verde.copy(alpha = 0.35f))
+
+            // Contenido del chat con sus elementos básicos (mensajes, adjuntos, barra de entrada)
             ChatScreen(
                 viewModel = viewModel,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -1229,8 +1303,29 @@ private fun PanelChatGeneral(
                 tituloChat = "Sala General",
                 gestorLlamadas = contenedor.gestorLlamadas,
                 onVolverAlMapa = onCerrar,
-                esVistaHub = false
+                esVistaHub = false,
+                ocultarBarraSuperior = true
             )
+
+            // Divisor táctico entre el chat y el mapa cuando está ampliado a la mitad
+            if (ampliado) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .background(radarColors.panel)
+                        .border(1.dp, radarColors.verde.copy(alpha = 0.45f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(44.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(1.5.dp))
+                            .background(radarColors.verdeBrillante.copy(alpha = 0.85f))
+                    )
+                }
+            }
         }
     }
 }
