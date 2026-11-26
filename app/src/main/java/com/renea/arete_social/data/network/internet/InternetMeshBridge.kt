@@ -361,15 +361,15 @@ class InternetMeshBridge(
                     val todosMisIds = (aliasesProveedor?.invoke() ?: emptyList()).plus(usuarioId).filter { it.isNotBlank() }.distinct()
                     val tagsAConsultar = todosMisIds.flatMap { BuzonCiegoCripto.tagsActivosParaUsuario(it) }.distinct()
                     for (tag in tagsAConsultar) {
+                        val ahora = System.currentTimeMillis()
                         val ultimoTagMs = ultimoFetchPorTag.getOrPut(tag) {
-                            prefsRelay.getLong("fetch_tag_$tag", System.currentTimeMillis() - BuzonCiegoCripto.VENTANA_ROTACION_MS)
+                            prefsRelay.getLong("fetch_tag_$tag", ahora - BuzonCiegoCripto.VENTANA_ROTACION_MS)
                         }
-                        // Margen de seguridad contra desincronización de relojes entre dispositivos (30s)
-                        val fetchSinceMs = maxOf(0L, ultimoTagMs - 30_000L)
+                        // Ventana deslizante robusta contra desfase de relojes (mínimo 5 minutos hacia atrás)
+                        val fetchSinceMs = maxOf(0L, minOf(ultimoTagMs - 30_000L, ahora - 300_000L))
                         val sobres = relayTransport.fetch(tag, fetchSinceMs)
                         if (sobres.isNotEmpty()) {
                             val ids = mutableListOf<String>()
-                            var maxTs = ultimoTagMs
                             for (sobre in sobres) {
                                 try {
                                     val sinPadding = BuzonCiegoCripto.removerPadding(sobre.payloadBytes)
@@ -377,15 +377,12 @@ class InternetMeshBridge(
                                     val paquete = json.decodeFromString<PaqueteMesh>(jsonStr)
                                     inyectarPaqueteDesdeInternet(paquete)
                                     ids.add(sobre.id)
-                                    if (sobre.timestampMs > maxTs) {
-                                        maxTs = sobre.timestampMs
-                                    }
                                 } catch (e: Exception) {
                                     Log.w(TAG, "Error deserializando sobre relay ${sobre.id.take(8)}: ${e.message}")
                                 }
                             }
-                            ultimoFetchPorTag[tag] = maxTs
-                            prefsRelay.edit().putLong("fetch_tag_$tag", maxTs).apply()
+                            ultimoFetchPorTag[tag] = ahora
+                            prefsRelay.edit().putLong("fetch_tag_$tag", ahora).apply()
                             if (ids.isNotEmpty()) relayTransport.ack(tag, ids)
                         }
                     }

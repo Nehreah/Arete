@@ -196,9 +196,12 @@ class GestorIdentidadEcdsa(
      */
     @Synchronized
     fun cambiarUsuario(usuarioId: String?) {
+        if (usuarioId == null) {
+            cargarOGenerarClaves()
+            return
+        }
         miClavePrivada = null
         miClavePublica = null
-        if (usuarioId == null) return
         val p = prefs ?: return
         val privKey = "${usuarioId}_${PREF_KEY_PRIVATE}"
         val pubKey  = "${usuarioId}_${PREF_KEY_PUBLIC}"

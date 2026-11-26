@@ -72,19 +72,23 @@ class ProximityManagerHibrido(
             fun normalizar(id: String?): String {
                 if (id.isNullOrBlank()) return ""
                 val trimmed = id.trim().lowercase()
-                return if (trimmed.startsWith("invitado-local-")) {
-                    "invitado-local-" + trimmed.removePrefix("invitado-local-").replace("-", "")
-                } else {
-                    trimmed.replace("-", "")
+                return when {
+                    trimmed.startsWith("invitado-local-") ->
+                        "invitado-local-" + trimmed.removePrefix("invitado-local-").replace("-", "")
+                    trimmed.startsWith("usuario-local-") ->
+                        "usuario-local-" + trimmed.removePrefix("usuario-local-").replace("-", "")
+                    else -> trimmed.replace("-", "")
                 }
             }
 
             fun truncarSeguro(clave: String): String {
                 if (clave.isEmpty()) return ""
-                return if (clave.startsWith("invitado-local-")) {
-                    "invitado-local-" + clave.removePrefix("invitado-local-").take(16)
-                } else {
-                    clave.take(16)
+                return when {
+                    clave.startsWith("invitado-local-") ->
+                        "invitado-local-" + clave.removePrefix("invitado-local-").take(16)
+                    clave.startsWith("usuario-local-") ->
+                        "usuario-local-" + clave.removePrefix("usuario-local-").take(16)
+                    else -> clave.take(16)
                 }
             }
 

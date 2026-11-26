@@ -34,7 +34,6 @@ object AjustesRed {
         "wss://nos.lol",              // Acepta kind 1059 (NIP-59), permisivo, comunitario
         "wss://relay.damus.io",       // Acepta kind 1059 (NIP-59), alta disponibilidad
         "wss://relay.nostr.band",     // Relay global permisivo con buen soporte de búsqueda
-        "wss://nostr.wine",           // Relay premium permisivo con historial largo
         "wss://relay.primal.net",     // Relay de Primal (alta disponibilidad, puede filtrar algunos kinds)
         "wss://relay.snort.social"    // Relay de Snort (respaldo)
     )

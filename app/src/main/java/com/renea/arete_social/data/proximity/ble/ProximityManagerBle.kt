@@ -190,62 +190,74 @@ class ProximityManagerBle(
 
     private fun construirPaquetesTier(usuarioId: String, tier: Int): PaquetesPublicidad {
         // Empaquetar el ID de usuario en bytes binarios con cabecera de tipo (17 bytes total para UUIDs)
-        val dataBytes = if (usuarioId.startsWith("invitado-local-")) {
-            val uuidPart = usuarioId.removePrefix("invitado-local-")
-            runCatching {
-                val uuid = UUID.fromString(uuidPart)
-                java.nio.ByteBuffer.allocate(17)
-                    .put(0x02.toByte()) // Tipo 0x02: UUID sintético de invitado local
-                    .putLong(uuid.mostSignificantBits)
-                    .putLong(uuid.leastSignificantBits)
-                    .array()
-            }.getOrElse {
-                val raw = usuarioId.toByteArray(Charsets.UTF_8)
-                val len = minOf(raw.size, 16)
-                java.nio.ByteBuffer.allocate(1 + len)
-                    .put(0x03.toByte())
-                    .put(raw, 0, len)
-                    .array()
+        val dataBytes = when {
+            usuarioId.startsWith("invitado-local-") -> {
+                val uuidPart = usuarioId.removePrefix("invitado-local-")
+                runCatching {
+                    val uuid = UUID.fromString(uuidPart)
+                    java.nio.ByteBuffer.allocate(17)
+                        .put(0x02.toByte()) // Tipo 0x02: UUID sintético de invitado local
+                        .putLong(uuid.mostSignificantBits)
+                        .putLong(uuid.leastSignificantBits)
+                        .array()
+                }.getOrElse {
+                    val raw = usuarioId.toByteArray(Charsets.UTF_8)
+                    val len = minOf(raw.size, 16)
+                    java.nio.ByteBuffer.allocate(1 + len)
+                        .put(0x03.toByte())
+                        .put(raw, 0, len)
+                        .array()
+                }
             }
-        } else {
-            runCatching {
-                val uuid = UUID.fromString(usuarioId)
-                java.nio.ByteBuffer.allocate(17)
-                    .put(0x01.toByte()) // Tipo 0x01: UUID binario estándar (16 bytes)
-                    .putLong(uuid.mostSignificantBits)
-                    .putLong(uuid.leastSignificantBits)
-                    .array()
-            }.getOrElse {
-                val raw = usuarioId.toByteArray(Charsets.UTF_8)
-                val len = minOf(raw.size, 16)
-                java.nio.ByteBuffer.allocate(1 + len)
-                    .put(0x03.toByte()) // Tipo 0x03: Texto plano UTF-8
-                    .put(raw, 0, len)
-                    .array()
+            usuarioId.startsWith("usuario-local-") -> {
+                val uuidPart = usuarioId.removePrefix("usuario-local-")
+                runCatching {
+                    val uuid = UUID.fromString(uuidPart)
+                    java.nio.ByteBuffer.allocate(17)
+                        .put(0x04.toByte()) // Tipo 0x04: UUID de usuario registrado local
+                        .putLong(uuid.mostSignificantBits)
+                        .putLong(uuid.leastSignificantBits)
+                        .array()
+                }.getOrElse {
+                    val raw = usuarioId.toByteArray(Charsets.UTF_8)
+                    val len = minOf(raw.size, 16)
+                    java.nio.ByteBuffer.allocate(1 + len)
+                        .put(0x03.toByte())
+                        .put(raw, 0, len)
+                        .array()
+                }
+            }
+            else -> {
+                runCatching {
+                    val uuid = UUID.fromString(usuarioId)
+                    java.nio.ByteBuffer.allocate(17)
+                        .put(0x01.toByte()) // Tipo 0x01: UUID binario estándar (16 bytes)
+                        .putLong(uuid.mostSignificantBits)
+                        .putLong(uuid.leastSignificantBits)
+                        .array()
+                }.getOrElse {
+                    val raw = usuarioId.toByteArray(Charsets.UTF_8)
+                    val len = minOf(raw.size, 16)
+                    java.nio.ByteBuffer.allocate(1 + len)
+                        .put(0x03.toByte()) // Tipo 0x03: Texto plano UTF-8
+                        .put(raw, 0, len)
+                        .array()
+                }
             }
         }
 
         // Paquete principal: 28 bytes (Flags: 3B + ServiceUuid: 4B + ServiceData: 21B) <= límite 31B legado.
+        // Incluimos tanto ServiceUuid como ServiceData para matching garantizado en hardware y extracción de datos.
         val data = AdvertiseData.Builder()
             .addServiceUuid(ANTIRED_PARCEL_UUID)
             .addServiceData(ANTIRED_PARCEL_UUID, dataBytes)
             .setIncludeDeviceName(false)
             .build()
 
-        // Paquete separado (scan response) con el nombre de perfil truncado a bytes UTF-8 completos
-        val nombreBytes = nombreProveedor()
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-            ?.let { truncarUtf8(it, MAX_BYTES_NOMBRE) }
-
-        val scanResponse = if ((tier == 1 || tier == 2) && nombreBytes != null) {
-            AdvertiseData.Builder()
-                .addServiceData(ANTIRED_NOMBRE_PARCEL_UUID, nombreBytes)
-                .setIncludeDeviceName(false)
-                .build()
-        } else {
-            null
-        }
+        // Desactivamos temporalmente el scanResponse secundario: en chipsets MediaTek (MT6765/MT6878),
+        // coordinar ADV_IND + SCAN_RSP dual satura los buffers de ranura HCI de radio, impidiendo
+        // que la transmisión salga al aire. Un solo paquete compacto garantiza emisión continua al 100%.
+        val scanResponse: AdvertiseData? = null
 
         val settings = when (tier) {
             1 -> AdvertiseSettings.Builder()
@@ -411,10 +423,11 @@ class ProximityManagerBle(
         var scanner: BluetoothLeScanner? = adapter?.bluetoothLeScanner
         var avisado = false
         while (adapter == null || !adapter.isEnabled || scanner == null ||
-            !tienePermisosBle() || usuarioIdProveedor() == null
+            !tienePermisosBle() || usuarioIdProveedor() == null ||
+            !com.renea.arete_social.util.GestorCompatibilidadFabricantes.estaUbicacionHabilitada(context)
         ) {
             if (!avisado) {
-                Log.d(TAG, "BLE en espera: adapter=${adapter != null}, isEnabled=${adapter?.isEnabled}, scanner=${scanner != null}, permisos=${tienePermisosBle()}, usuarioId=${usuarioIdProveedor()}")
+                Log.d(TAG, "BLE en espera: adapter=${adapter != null}, isEnabled=${adapter?.isEnabled}, scanner=${scanner != null}, permisos=${tienePermisosBle()}, ubicacion=${com.renea.arete_social.util.GestorCompatibilidadFabricantes.estaUbicacionHabilitada(context)}, usuarioId=${usuarioIdProveedor()}")
                 avisado = true
             }
             delay(REINTENTO_REQUISITOS_MS)
@@ -426,14 +439,12 @@ class ProximityManagerBle(
         iniciarPublicidad()
         val scannerListo = scanner
 
-        // ── Escaneo por filtro de servicio AntiRed (0xFED0) ──────────────────
-        // Usamos UN SOLO filtro de UUID (el más compatible con todos los chips).
-        // Filtros por setServiceData() o múltiples filtros simultáneos fallan silenciosamente
-        // en chips MediaTek, Xiaomi y algunos Samsung Exynos. El filtrado fino por datos de
-        // servicio se hace por software en procesarResultadoScan().
+        // ── Escaneo BLE por filtro de servicio dedicado (0xFED0) ─────────────
+        // Coincide directamente con el ServiceUuid emitido en el anuncio sin scanResponse.
         val filtros = listOf(
             ScanFilter.Builder().setServiceUuid(ANTIRED_PARCEL_UUID).build()
         )
+        var filtrosActuales = filtros
 
         val settingsAgresivos = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
@@ -450,8 +461,15 @@ class ProximityManagerBle(
         var reintentosActivosScan = 0
         lateinit var scanCallback: ScanCallback
 
+        var totalScanResultsRecibidos = 0
         scanCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult?) {
+                totalScanResultsRecibidos++
+                if (totalScanResultsRecibidos <= 10 || totalScanResultsRecibidos % 50 == 0) {
+                    val uuids = result?.scanRecord?.serviceUuids?.map { it.uuid.toString() }
+                    val sData = result?.scanRecord?.serviceData?.keys?.map { it.uuid.toString() }
+                    Log.d(TAG, "ScanResult #$totalScanResultsRecibidos: dev=${result?.device?.address}, uuids=$uuids, sData=$sData")
+                }
                 result?.let { procesarResultadoScan(it) }
             }
 
@@ -515,6 +533,8 @@ class ProximityManagerBle(
                     return
                 }
 
+                Log.d(TAG, "Firma AntiRed detectada de ${result.device?.address} (serviceData=${serviceData?.size}B, nombreData=${nombreData?.size}B, tieneUuid=$tieneUuid)")
+
                 val usuarioId = serviceData?.let { bytes ->
                     when {
                         bytes.size == 17 && bytes[0] == 0x01.toByte() -> {
@@ -524,6 +544,10 @@ class ProximityManagerBle(
                         bytes.size == 17 && bytes[0] == 0x02.toByte() -> {
                             val buffer = java.nio.ByteBuffer.wrap(bytes, 1, 16)
                             "invitado-local-${UUID(buffer.long, buffer.long)}"
+                        }
+                        bytes.size == 17 && bytes[0] == 0x04.toByte() -> {
+                            val buffer = java.nio.ByteBuffer.wrap(bytes, 1, 16)
+                            "usuario-local-${UUID(buffer.long, buffer.long)}"
                         }
                         bytes.size in 2..21 && bytes[0] == 0x03.toByte() -> {
                             val str = String(bytes, 1, bytes.size - 1, Charsets.UTF_8).trim()
@@ -555,6 +579,7 @@ class ProximityManagerBle(
                 }
 
                 val deviceAddress      = result.device?.address ?: return
+                Log.i(TAG, "¡Par AntiRed válido detectado!: mac=$deviceAddress, usuarioId=$usuarioId, rssi=${result.rssi}")
                 val rssi               = result.rssi
                 val distanciaEstimada  = calcularDistanciaRssi(rssi)
 
@@ -616,10 +641,29 @@ class ProximityManagerBle(
         }
 
         runCatching {
-            scannerListo.startScan(filtros, settingsAgresivos, scanCallback)
-            Log.d(TAG, "Escaneo BLE iniciado en modo LOW_LATENCY con filtro 0xFED0")
+            scannerListo.startScan(filtrosActuales, settingsAgresivos, scanCallback)
+            Log.d(TAG, "Escaneo BLE iniciado en modo LOW_LATENCY con filtro 0xFED0 (filtros=${filtrosActuales.size})")
         }.onFailure {
             Log.e(TAG, "Error al iniciar escaneo BLE: ${it.message}")
+        }
+
+        // Watchdog para controladores con filtrado de hardware defectuoso:
+        // Si tras 5 s no hay dispositivos descubiertos y había filtros de hardware, conmutar a emptyList().
+        launch {
+            delay(5_000L)
+            if (dispositivosDescubiertos.isEmpty() && isActive && filtrosActuales.isNotEmpty()) {
+                val sc = bluetoothAdapter?.bluetoothLeScanner ?: scannerListo
+                Log.i(TAG, "Watchdog BLE: 0 pares detectados tras 5s; conmutando a filtrado software compatible (emptyList)")
+                runCatching { sc.stopScan(scanCallback) }
+                delay(200L)
+                filtrosActuales = emptyList()
+                runCatching {
+                    sc.startScan(emptyList(), settingsActivos, scanCallback)
+                    Log.i(TAG, "Watchdog BLE: escaneo reactivado exitosamente con filtrado software")
+                }.onFailure {
+                    Log.e(TAG, "Watchdog BLE: error al reiniciar escaneo: ${it.message}")
+                }
+            }
         }
 
         // Fase 2: tras DISCOVERY_LATENCY_MS, bajar a BALANCED para ahorrar batería
@@ -632,9 +676,9 @@ class ProximityManagerBle(
                 .setReportDelay(0L)
                 .build()
             runCatching {
-                currentScanner.startScan(filtros, settingsBalanceados, scanCallback)
+                currentScanner.startScan(filtrosActuales, settingsBalanceados, scanCallback)
                 settingsActivos = settingsBalanceados   // actualizar referencia activa
-                Log.d(TAG, "Escaneo BLE cambiado a modo BALANCED (filtro 0xFED0)")
+                Log.d(TAG, "Escaneo BLE cambiado a modo BALANCED (filtros=${filtrosActuales.size})")
             }.onFailure {
                 Log.e(TAG, "No se pudo reiniciar en modo BALANCED: ${it.message}")
             }
@@ -650,7 +694,7 @@ class ProximityManagerBle(
                     val nuevoScanner = bluetoothAdapter?.bluetoothLeScanner
                     if (nuevoScanner != null) {
                         runCatching { nuevoScanner.stopScan(scanCallback) }
-                        runCatching { nuevoScanner.startScan(filtros, settingsActivos, scanCallback) }
+                        runCatching { nuevoScanner.startScan(filtrosActuales, settingsActivos, scanCallback) }
                     }
                 } else if (state == BluetoothAdapter.STATE_OFF) {
                     Log.d(TAG, "Bluetooth desactivado por el sistema: limpiando dispositivos")

@@ -577,9 +577,12 @@ class GattMensajeriaManager(
         @Volatile private var gatt: BluetoothGatt? = null
         @Volatile private var mtu = 23
         @Volatile private var cerrado = false
+        @Volatile private var conectando = false
         @Volatile private var ackPendiente: CompletableDeferred<Int>? = null
         @Volatile private var cccdAck: CompletableDeferred<Boolean>? = null
         @Volatile private var ultimoIntentoConexion = 0L
+        private var jobTimeoutConexion: Job? = null
+        private var jobTimeoutMtu: Job? = null
         private val listo = AtomicBoolean(false)
         private val cola = ArrayDeque<PaqueteMesh>()           // protegido con synchronized(cola)
         private val senal = Channel<Unit>(Channel.CONFLATED)
@@ -616,7 +619,7 @@ class GattMensajeriaManager(
         fun estaListo() = listo.get() && !cerrado
 
         fun debeReintentar(): Boolean {
-            if (cerrado || listo.get()) return false
+            if (cerrado || listo.get() || conectando) return false
             val baseBackoffMs = when (fallosSeguidos) {
                 0 -> 2_500L
                 1 -> 4_000L
@@ -628,32 +631,63 @@ class GattMensajeriaManager(
         }
 
         fun conectar() {
-            if (cerrado || !tienePermisoConnect() || !bluetoothAdapter.isEnabled) return
+            if (cerrado || conectando || listo.get() || !tienePermisoConnect() || !bluetoothAdapter.isEnabled) return
+            conectando = true
             ultimoIntentoConexion = System.currentTimeMillis()
             val device = dispositivoBtProveedor?.invoke(mac)
                 ?: runCatching { bluetoothAdapter.getRemoteDevice(mac) }.getOrNull()
-                ?: return
+                ?: run {
+                    conectando = false
+                    return
+                }
             listo.set(false)
             Log.d(TAG, "[$mac] Iniciando conexión GATT (fallos=$fallosSeguidos)")
 
+            // Si existía un handle GATT previo, cerrarlo antes de un nuevo intento
+            runCatching { gatt?.close() }
+            gatt = null
+
             val cb = object : BluetoothGattCallback() {
                 override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
+                    if (g !== gatt && gatt != null) {
+                        Log.d(TAG, "ClienteGatt [$mac]: ignorando callback de conexión de GATT obsoleto")
+                        runCatching { g.close() }
+                        return
+                    }
                     Log.d(TAG, "ClienteGatt onConnectionStateChange: mac=$mac status=$status newState=$newState")
                     if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
+                        jobTimeoutConexion?.cancel()
                         gatt = g
-                        if (!g.requestMtu(512)) g.discoverServices()   // → onMtuChanged / onServicesDiscovered
+                        conectando = false
+
+                        // Timeout MTU de 2.5s: si no hay respuesta de onMtuChanged, llamar a discoverServices()
+                        jobTimeoutMtu?.cancel()
+                        jobTimeoutMtu = scope.launch {
+                            delay(2500L)
+                            if (gatt === g && !listo.get() && !cerrado) {
+                                Log.d(TAG, "[$mac] MTU timeout (2.5s) — procediendo a discoverServices()")
+                                g.discoverServices()
+                            }
+                        }
+                        if (!g.requestMtu(512)) {
+                            jobTimeoutMtu?.cancel()
+                            g.discoverServices()
+                        }
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED || status != BluetoothGatt.GATT_SUCCESS) {
                         alDesconectar(g, status)
                     }
                 }
 
                 override fun onMtuChanged(g: BluetoothGatt, mtuSize: Int, status: Int) {
+                    if (g !== gatt && gatt != null) return
+                    jobTimeoutMtu?.cancel()
                     Log.d(TAG, "ClienteGatt onMtuChanged: mac=$mac mtuSize=$mtuSize status=$status")
                     if (status == BluetoothGatt.GATT_SUCCESS) mtu = mtuSize
                     g.discoverServices()
                 }
 
                 override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
+                    if (g !== gatt && gatt != null) return
                     Log.d(TAG, "ClienteGatt onServicesDiscovered: mac=$mac status=$status")
                     val srv = g.getService(ANTIRED_GATT_SERVICE_UUID)
                     val char = srv?.getCharacteristic(ANTIRED_GATT_MSG_UUID)
@@ -664,6 +698,7 @@ class GattMensajeriaManager(
                     }
                     fallosSeguidos = 0
                     listo.set(true)
+                    conectando = false
                     val self = this@ClienteGatt
                     val idPeerCli = "cli-$mac"
                     val dispCli = self.dispositivo.copy(id = idPeerCli)
@@ -805,8 +840,21 @@ class GattMensajeriaManager(
             }
 
             runCatching {
-                device.connectGatt(context, false, cb, BluetoothDevice.TRANSPORT_LE)
-            }.onFailure { Log.e(TAG, "[$mac] Error en connectGatt: ${it.message}") }
+                val nuevoGatt = device.connectGatt(context, false, cb, BluetoothDevice.TRANSPORT_LE)
+                gatt = nuevoGatt
+                // Timeout de conexión GATT (12s): si en 12s no conecta, abortar intento y reintentar con backoff
+                jobTimeoutConexion?.cancel()
+                jobTimeoutConexion = scope.launch {
+                    delay(12_000L)
+                    if (conectando && !listo.get() && !cerrado) {
+                        Log.w(TAG, "[$mac] Timeout de conexión GATT (12s) expirado — cancelando intento")
+                        alDesconectar(nuevoGatt, 133)
+                    }
+                }
+            }.onFailure {
+                conectando = false
+                Log.e(TAG, "[$mac] Error en connectGatt: ${it.message}")
+            }
         }
 
         private fun procesarNotificacionEntrante(origenMac: String, value: ByteArray?) {
@@ -823,6 +871,13 @@ class GattMensajeriaManager(
         }
 
         private fun alDesconectar(g: BluetoothGatt, status: Int) {
+            if (g !== gatt && gatt != null) {
+                runCatching { g.close() }
+                return
+            }
+            conectando = false
+            jobTimeoutConexion?.cancel()
+            jobTimeoutMtu?.cancel()
             Log.d(TAG, "[$mac] Desconectado (status=$status)")
             listo.set(false)
             jobEnvio?.cancel()
@@ -834,7 +889,7 @@ class GattMensajeriaManager(
             messageRouter.removerPeer("cli-$mac")
             GattFramer.limpiarSesion(mac)
             runCatching { g.close() }
-            gatt = null
+            if (gatt === g) gatt = null
             if (cerrado) return
 
             fallosSeguidos++
@@ -854,6 +909,9 @@ class GattMensajeriaManager(
 
         fun cerrar() {
             cerrado = true
+            conectando = false
+            jobTimeoutConexion?.cancel()
+            jobTimeoutMtu?.cancel()
             listo.set(false)
             jobEnvio?.cancel()
             jobLecturaUbicacion?.cancel()

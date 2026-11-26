@@ -38,4 +38,14 @@ class NostrCryptoTest {
         val eventId = NostrCrypto.calcularEventId(pubkey, createdAt, kind, tags, content)
         assertEquals(64, eventId.length)
     }
+
+    @Test
+    fun testVectorOficialBip340Vector0() {
+        val pubkey = "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9"
+        val msgHash = ByteArray(32) // 32 bytes de 0x00
+        val sig = "e907831f80848d1069a5371b402410364bdf1c5f8307b0084c55f1ce2dca821525f66a4a85ea8b71e482a74f382d2ce5ebeee8fdb2172f477df4900d310536c0"
+
+        val esValida = NostrCrypto.verificarBip340(msgHash, pubkey, sig)
+        assertTrue("La firma del vector oficial BIP-340 #0 debe ser verificada como válida", esValida)
+    }
 }

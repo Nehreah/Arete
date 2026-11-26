@@ -75,6 +75,7 @@ class SesionViewModel(
                     cifradorE2ee.guardarClavePublicaConocida(usuarioId, pubLocal, "verificado")
                 }
                 if (gestorIdentidad != null) {
+                    gestorIdentidad.cambiarUsuario(usuarioId)
                     val pubFirma = gestorIdentidad.obtenerClavePublicaBase64()
                     if (pubFirma != null) {
                         repoUsuarios.actualizarClavePublicaFirma(usuarioId, pubFirma)

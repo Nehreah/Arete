@@ -39,6 +39,17 @@ object GestorCompatibilidadFabricantes {
         return coincideFabricante(fabricante, marca, "motorola")
     }
 
+    fun esVivo(fabricante: String = Build.MANUFACTURER, marca: String = Build.BRAND): Boolean {
+        return coincideFabricante(fabricante, marca, "vivo") || coincideFabricante(fabricante, marca, "iqoo")
+    }
+
+    fun esChipsetMediaTek(): Boolean {
+        val hw = Build.HARDWARE.lowercase()
+        val board = Build.BOARD.lowercase()
+        val soc = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Build.SOC_MANUFACTURER.lowercase() else ""
+        return hw.contains("mt") || board.contains("mt") || soc.contains("mediatek")
+    }
+
     /**
      * Identifica dispositivos de recursos limitados (Android Go, memoria RAM <= 3 GB),
      * donde se deben usar configuraciones reducidas de hilos y memoria de teselas.

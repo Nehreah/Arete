@@ -122,6 +122,24 @@ object NostrCrypto {
         return KeyPairSecp256k1(privHex, pubHex)
     }
 
+    /**
+     * Hash etiquetado estándar BIP-340:
+     * `tagged_hash(tag, msg) = sha256(sha256(tag) || sha256(tag) || msg)`
+     */
+    fun taggedHash(tag: String, vararg partes: ByteArray): ByteArray {
+        val tagHash = sha256Bytes(tag.toByteArray(Charsets.UTF_8))
+        val totalSize = tagHash.size * 2 + partes.sumOf { it.size }
+        val buffer = ByteArray(totalSize)
+        System.arraycopy(tagHash, 0, buffer, 0, tagHash.size)
+        System.arraycopy(tagHash, 0, buffer, tagHash.size, tagHash.size)
+        var offset = tagHash.size * 2
+        for (p in partes) {
+            System.arraycopy(p, 0, buffer, offset, p.size)
+            offset += p.size
+        }
+        return sha256Bytes(buffer)
+    }
+
     // ─── Firma BIP-340 Schnorr ────────────────────────────────────────────────
 
     /**
@@ -149,12 +167,8 @@ object NostrCrypto {
         val k = if (rPoint.y.testBit(0)) N.subtract(kPrima) else kPrima
         val rxBytes = bigIntegerABytes32(rPoint.x)
 
-        // e = sha256(rx + px + m) mod N
-        val eBytes = ByteArray(32 + 32 + 32)
-        System.arraycopy(rxBytes, 0, eBytes, 0, 32)
-        System.arraycopy(pxBytes, 0, eBytes, 32, 32)
-        System.arraycopy(msgHash32, 0, eBytes, 64, 32)
-        val e = BigInteger(1, sha256Bytes(eBytes)).mod(N)
+        // e = tagged_hash("BIP0340/challenge", rx || px || m) mod N
+        val e = BigInteger(1, taggedHash("BIP0340/challenge", rxBytes, pxBytes, msgHash32)).mod(N)
 
         // s = (k + e * d) mod N
         val s = k.add(e.multiply(d)).mod(N)
@@ -186,14 +200,10 @@ object NostrCrypto {
             val py = if (y.testBit(0)) P.subtract(y) else y
             val pPoint = Punto(px, py)
 
-            // e = sha256(rx + px + m) mod N
+            // e = tagged_hash("BIP0340/challenge", rx || px || m) mod N
             val rxBytes = bigIntegerABytes32(rx)
             val pxBytes = bigIntegerABytes32(px)
-            val eBytes = ByteArray(96)
-            System.arraycopy(rxBytes, 0, eBytes, 0, 32)
-            System.arraycopy(pxBytes, 0, eBytes, 32, 32)
-            System.arraycopy(msgHash32, 0, eBytes, 64, 32)
-            val e = BigInteger(1, sha256Bytes(eBytes)).mod(N)
+            val e = BigInteger(1, taggedHash("BIP0340/challenge", rxBytes, pxBytes, msgHash32)).mod(N)
 
             // R = s*G - e*P
             val sg = multiplicarPunto(s, G)
