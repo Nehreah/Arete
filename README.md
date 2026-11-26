@@ -103,6 +103,21 @@ Frente al desplazamiento infinito (*infinite scroll*) y los algoritmos diseñado
 
 ---
 
+## ✊ Autoría, Colaboración con IA y Visión Emancipadora
+
+> **«Aréte nace desde la convicción de que la tecnología debe liberar y conectar a los pueblos, no vigilar ni mercantilizar sus vidas.»**
+
+- 🧑‍💻 **Autoría:** Este proyecto ha sido creado y desarrollado por un **único contribuyente**, **estudiante de Tecnología en Desarrollo de Software**, quien diseñó e implementó la plataforma en estrecha **colaboración con Inteligencia Artificial (IA)**.
+- 🕊️ **Hacia un Proyecto Colectivo y Emancipador:** Aunque comenzó como una iniciativa individual asistida por IA, el objetivo primordial es que Aréte se convierta en un **esfuerzo colectivo, comunitario y emancipador de Software Libre (*Free Software*)**.
+- 🛡️ **100% al Servicio de la Comunidad:** Una red social que existe únicamente para servir a las personas:
+  - **Sin recolección ni venta de datos:** Ninguna corporación ni servidor central extrae, analiza o monetiza tu información personal, hábitos o mensajes. Todo reside exclusivamente en tu propio teléfono bajo tu soberanía.
+  - **Sin la necesidad de un algoritmo:** No existen algoritmos de recomendación opacos diseñados para retenerte artificialmente, provocar polarización o vender publicidad. La comunicación es directa, natural y humana.
+  - **Emancipación tecnológica:** Demostrar que una comunidad puede organizarse, expresarse y comunicarse libremente entre pares (*peer-to-peer*), incluso ante cortes de internet, apagones o bloqueos de red.
+
+¡Toda persona interesada en la libertad tecnológica, el software libre y la privacidad comunitaria está invitada a sumarse como contribuidora!
+
+---
+
 ## 📜 Reglas de Convivencia, EULA y Privacidad
 
 Para garantizar que Aréte sea un espacio seguro, sano y confiable:
@@ -124,11 +139,12 @@ Para quienes deseen explorar en detalle el funcionamiento técnico y el diseño 
 
 - 🗺️ [**Índice General de Documentación**](docs/INDICE.md) — Directorio maestro de todos los documentos.
 - 🏛️ [**Arquitectura Técnica del Sistema**](docs/ARQUITECTURA.md) — Funcionamiento de los protocolos Bluetooth, Wi-Fi LAN y cifrado E2EE v4.
+- 📡 [**Guía Integral de Comunicaciones y Malla Híbrida**](docs/COMUNICACION_MESH.md) — Protocolos BLE GATT, Wi-Fi LAN, pasarelas de enlace y mulas de datos.
 - 🧭 [**Guía Funcional del Sistema**](docs/GUIA_FUNCIONAL.md) — Explicación detallada de salas, radar, cartas y Michi.
 - 🎨 [**Sistema de Diseño Visual**](docs/diseno/SISTEMA_DISENO.md) — Paleta de colores, tokens tácticos e interfaz visual.
 - 🐱 [**Michi y Pixel Art**](docs/diseno/SISTEMA_MICHI_PIXEL_ART.md) — Especificación de los sprites y animaciones de la mascota.
 - 🖼️ [**Licencia de Recursos Gráficos**](docs/LICENCIA_RECURSOS.md) — Atribución de imágenes, fondos e ilustraciones (CC-BY-4.0 / GPL-3.0).
-- 🤝 [**Guía para Contribuidores**](docs/CONTRIBUTING.md) — Cómo participar y enviar mejoras al proyecto.
+- 🤝 [**Guía para Contribuidores**](docs/CONTRIBUTING.md) — Cómo participar y enviar mejoras al proyecto colectivo.
 - 📝 [**Historial de Cambios (Changelog)**](docs/CHANGELOG.md) — Registro de versiones.
 
 ---

@@ -446,13 +446,16 @@ class ChatViewModel(
         val esDirecto = destinatarioIdDirecto != null
         if (esDirecto && clavePublicaDestinatario == null) {
             clavePublicaDestinatario = resolverClavePublica(destinatarioIdDirecto!!)
-            if (clavePublicaDestinatario == null && messageRouter != null) {
+            if (clavePublicaDestinatario == null) {
                 viewModelScope.launch {
-                    solicitarClaveIdent(destinatarioIdDirecto!!)
+                    if (messageRouter != null) {
+                        solicitarClaveIdent(destinatarioIdDirecto!!)
+                    }
                     val inicio = System.currentTimeMillis()
-                    while (clavePublicaDestinatario == null && System.currentTimeMillis() - inicio < 2500L) {
+                    while (clavePublicaDestinatario == null && System.currentTimeMillis() - inicio < 4500L) {
                         kotlinx.coroutines.delay(100)
                         clavePublicaDestinatario = resolverClavePublica(destinatarioIdDirecto!!)
+                            ?: clavePublicaDe(destinatarioIdDirecto!!)
                     }
                     enviarInterno(textoLimpio)
                 }
@@ -490,7 +493,7 @@ class ChatViewModel(
                 return
             }
             esDirecto -> {
-                _estado.value = actual.copy(errorEnvio = "No hay clave de cifrado de esta persona. No se envió.")
+                _estado.value = actual.copy(errorEnvio = "Intercambiando clave segura con esta persona. Por favor reintenta en unos segundos.")
                 return
             }
             else -> textoLimpio

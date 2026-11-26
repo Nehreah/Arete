@@ -1271,6 +1271,10 @@ class GestorLlamadasYAudio(
             // Seguridad Wi-Fi: SOLO se asocia o actualiza la IP en direccionesConocidas si el paquete
             // fue estrictamente autenticado criptográficamente. Esto previene el secuestro de llamadas (call hijacking).
             if (remitenteId.isNotBlank() && origen != null && remitenteAutenticado) {
+                if (direccionesConocidas.size > 256 && !direccionesConocidas.containsKey(remitenteId)) {
+                    val primeraClave = direccionesConocidas.keys.firstOrNull()
+                    if (primeraClave != null) direccionesConocidas.remove(primeraClave)
+                }
                 direccionesConocidas[remitenteId] = origen
             }
 
@@ -2449,11 +2453,54 @@ class GestorLlamadasYAudio(
         runCatching { toneGen?.release() }
         toneGen = null
         runCatching { vibrator?.cancel() }
+
         runCatching {
-            if (multicastLock?.isHeld == true) {
+            while (multicastLock?.isHeld == true) {
                 multicastLock?.release()
             }
         }
+
+        // Liberar socket UDP persistente y cancelar servidor de fondo
+        runCatching {
+            servidorUdpJob?.cancel()
+            servidorUdpJob = null
+            socketUdp?.close()
+            socketUdp = null
+        }
+
+        // Liberar hardware de captura y reproducción de audio
+        runCatching {
+            audioRecordPtt?.stop()
+            audioRecordPtt?.release()
+            audioRecordPtt = null
+        }
+        runCatching {
+            audioRecordLlamada?.stop()
+            audioRecordLlamada?.release()
+            audioRecordLlamada = null
+        }
+        runCatching {
+            audioTrackEnVivo?.stop()
+            audioTrackEnVivo?.release()
+            audioTrackEnVivo = null
+        }
+        runCatching {
+            mediaPlayerVoz?.stop()
+            mediaPlayerVoz?.release()
+            mediaPlayerVoz = null
+        }
+
+        // Limpiar colas y buffers de bitmaps en memoria
+        runCatching { canalColaAudio.close() }
+        runCatching {
+            val bmp = _videoFrameRemotoBitmap.value
+            _videoFrameRemotoBitmap.value = null
+            if (bmp != null && !bmp.isRecycled) {
+                bmp.recycle()
+            }
+        }
+        direccionesConocidas.clear()
+
         supervisorJob.cancel()
     }
 }

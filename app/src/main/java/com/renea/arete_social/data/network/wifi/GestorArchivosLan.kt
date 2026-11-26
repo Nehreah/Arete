@@ -34,6 +34,10 @@ class GestorArchivosLan(
         private const val TAG = "GestorArchivosLan"
         const val CHAT_PREFIX = "com-files-lan:"
         private const val CHUNK_SIZE_BYTES = 48 * 1024 // 48 KB por chunk TCP
+        private const val MAX_TOTAL_CHUNKS = 1050      // Límite de seguridad: ~50 MB máx
+        private const val MAX_CONCURRENT_TRANSFERS = 16
+        private const val CHUNK_TTL_MS = 60_000L       // 60 segundos antes de podar descargas incompletas
+        private val SAFE_ID_REGEX = Regex("^[a-zA-Z0-9_-]{1,64}$")
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -42,6 +46,7 @@ class GestorArchivosLan(
     // Buffer de ensamblado: archivoId -> Map<chunkIndex, bytes>
     private val bufferChunks = ConcurrentHashMap<String, ConcurrentHashMap<Int, ByteArray>>()
     private val totalChunksEsperados = ConcurrentHashMap<String, Int>()
+    private val ultimoChunkTimestamp = ConcurrentHashMap<String, Long>()
 
     fun iniciar() {
         scope.launch {
@@ -52,12 +57,27 @@ class GestorArchivosLan(
         }
     }
 
+    private fun esIdSeguro(id: String): Boolean = SAFE_ID_REGEX.matches(id)
+
+    private fun podarBuffersIncompletos() {
+        val ahora = System.currentTimeMillis()
+        val expirados = ultimoChunkTimestamp.filter { ahora - it.value > CHUNK_TTL_MS }.keys
+        for (archId in expirados) {
+            bufferChunks.remove(archId)
+            totalChunksEsperados.remove(archId)
+            ultimoChunkTimestamp.remove(archId)
+            Log.d(TAG, "Buffer incompleto podado por timeout: $archId")
+        }
+    }
+
     private suspend fun procesarPaquete(paquete: PaqueteMesh) {
         val payload = paquete.contenido
         when {
             payload.startsWith("REQ_LIST:") -> {
                 val comunidadId = payload.removePrefix("REQ_LIST:").trim()
-                responderListaArchivos(comunidadId, paquete.remitenteId)
+                if (esIdSeguro(comunidadId)) {
+                    responderListaArchivos(comunidadId, paquete.remitenteId)
+                }
             }
             payload.startsWith("RESP_LIST:") -> {
                 val resto = payload.removePrefix("RESP_LIST:")
@@ -65,7 +85,9 @@ class GestorArchivosLan(
                 if (primerSeparador > 0) {
                     val comunidadId = resto.substring(0, primerSeparador)
                     val rawJson = resto.substring(primerSeparador + 1)
-                    procesarListaRecibida(comunidadId, rawJson)
+                    if (esIdSeguro(comunidadId)) {
+                        procesarListaRecibida(comunidadId, rawJson)
+                    }
                 }
             }
             payload.startsWith("REQ_FILE:") -> {
@@ -74,7 +96,9 @@ class GestorArchivosLan(
                 if (partes.size >= 2) {
                     val comunidadId = partes[0]
                     val archivoId = partes[1]
-                    enviarArchivoEnChunks(comunidadId, archivoId, paquete.remitenteId)
+                    if (esIdSeguro(comunidadId) && esIdSeguro(archivoId)) {
+                        enviarArchivoEnChunks(comunidadId, archivoId, paquete.remitenteId)
+                    }
                 }
             }
             payload.startsWith("CHUNK_FILE:") -> {
@@ -86,7 +110,9 @@ class GestorArchivosLan(
                     val chunkIndex = partes[2].toIntOrNull() ?: return
                     val totalChunks = partes[3].toIntOrNull() ?: return
                     val base64Data = partes[4]
-                    recibirChunk(comunidadId, archivoId, chunkIndex, totalChunks, base64Data)
+                    if (esIdSeguro(comunidadId) && esIdSeguro(archivoId)) {
+                        recibirChunk(comunidadId, archivoId, chunkIndex, totalChunks, base64Data)
+                    }
                 }
             }
         }
@@ -147,13 +173,19 @@ class GestorArchivosLan(
     }
 
     private suspend fun enviarArchivoEnChunks(comunidadId: String, archivoId: String, destinatarioId: String) {
-        val dir = File(context.filesDir, "media/comunidades/$comunidadId")
-        val file = File(dir, "$archivoId.dat")
-        if (!file.exists()) return
+        val baseDir = File(context.filesDir, "media/comunidades").canonicalFile
+        val dir = File(baseDir, comunidadId).canonicalFile
+        val file = File(dir, "$archivoId.dat").canonicalFile
+        // Validación estricta contra Path Traversal
+        if (!file.canonicalPath.startsWith(baseDir.canonicalPath) || !file.exists()) return
 
         val miId = miIdProveedor() ?: return
         val bytes = runCatching { file.readBytes() }.getOrNull() ?: return
         val totalChunks = ((bytes.size + CHUNK_SIZE_BYTES - 1) / CHUNK_SIZE_BYTES).coerceAtLeast(1)
+        if (totalChunks > MAX_TOTAL_CHUNKS) {
+            Log.w(TAG, "Archivo local $archivoId excede el límite máximo de chunks ($totalChunks > $MAX_TOTAL_CHUNKS)")
+            return
+        }
 
         for (i in 0 until totalChunks) {
             val start = i * CHUNK_SIZE_BYTES
@@ -180,10 +212,30 @@ class GestorArchivosLan(
         totalChunks: Int,
         base64Data: String
     ) {
+        // Validación de límites y de chunks
+        if (totalChunks !in 1..MAX_TOTAL_CHUNKS || chunkIndex !in 0 until totalChunks) {
+            Log.w(TAG, "Chunk rechazado: índices fuera de rango (idx=$chunkIndex total=$totalChunks)")
+            return
+        }
+
+        podarBuffersIncompletos()
+
+        // Límite de transferencias concurrentes para mitigar ataques DoS de memoria
+        if (!bufferChunks.containsKey(archivoId) && bufferChunks.size >= MAX_CONCURRENT_TRANSFERS) {
+            Log.w(TAG, "Transferencia rechazada: alcanzado límite de $MAX_CONCURRENT_TRANSFERS transferencias concurrentes")
+            return
+        }
+
         val bytes = runCatching { Base64.decode(base64Data, Base64.NO_WRAP) }.getOrNull() ?: return
+        if (bytes.size > CHUNK_SIZE_BYTES * 2) {
+            Log.w(TAG, "Chunk rechazado: tamaño excede límite permitido (${bytes.size} bytes)")
+            return
+        }
+
         val map = bufferChunks.getOrPut(archivoId) { ConcurrentHashMap() }
         map[chunkIndex] = bytes
         totalChunksEsperados[archivoId] = totalChunks
+        ultimoChunkTimestamp[archivoId] = System.currentTimeMillis()
 
         if (map.size == totalChunks) {
             // Todos los chunks recibidos: reensamblar y escribir en disco
@@ -195,11 +247,30 @@ class GestorArchivosLan(
             val completo = bos.toByteArray()
             bufferChunks.remove(archivoId)
             totalChunksEsperados.remove(archivoId)
+            ultimoChunkTimestamp.remove(archivoId)
 
-            val dir = File(context.filesDir, "media/comunidades/$comunidadId")
+            val baseDir = File(context.filesDir, "media/comunidades").canonicalFile
+            val dir = File(baseDir, comunidadId).canonicalFile
             if (!dir.exists()) dir.mkdirs()
-            val destFile = File(dir, "$archivoId.dat")
-            runCatching { destFile.writeBytes(completo) }
+            val destFile = File(dir, "$archivoId.dat").canonicalFile
+            val tempFile = File(dir, "$archivoId.dat.tmp").canonicalFile
+
+            // Garantizar que la ruta no escape del directorio base
+            if (!destFile.canonicalPath.startsWith(baseDir.canonicalPath)) {
+                Log.w(TAG, "Ruta de archivo rechazada por violación de directorio base: ${destFile.canonicalPath}")
+                return
+            }
+
+            // Escritura atómica vía archivo temporal
+            runCatching {
+                tempFile.writeBytes(completo)
+                if (destFile.exists()) destFile.delete()
+                tempFile.renameTo(destFile)
+            }.onFailure {
+                Log.e(TAG, "Error escribiendo archivo ensamblado $archivoId", it)
+                tempFile.delete()
+                return
+            }
 
             // Actualizar URL del archivo en GestorMuroComunidades si ya existe en la lista
             GestorMuroComunidades.inicializar(context)

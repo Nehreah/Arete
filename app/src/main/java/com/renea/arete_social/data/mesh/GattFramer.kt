@@ -110,22 +110,17 @@ object GattFramer {
 
             val sessionKey = "$mac:$msgId"
 
-            val session = if (esFirst) {
+            var session = sessions[sessionKey]
+            if (session == null) {
                 if (total !in 2..MAX_FRAGMENTOS) {
                     Log.w(TAG, "[$macAnonima] totalFragments=$total fuera de rango, descartado")
                     return null
                 }
                 hacerHuecoParaSesion(mac)
-                Session(total = total, fragments = arrayOfNulls(total))
+                session = Session(total = total, fragments = arrayOfNulls(total))
                     .also { sessions[sessionKey] = it }
-            } else {
-                sessions[sessionKey]
             }
 
-            if (session == null) {
-                Log.w(TAG, "[$macAnonima] Fragmento $index/$total sin sesión activa (msgId=$msgId), descartado")
-                return null
-            }
             if (total != session.total || index >= session.fragments.size) {
                 Log.w(TAG, "[$macAnonima] Fragmento inconsistente (idx=$index total=$total esperado=${session.total})")
                 sessions.remove(sessionKey)
@@ -142,11 +137,12 @@ object GattFramer {
                 }
             }
 
-            val fragmentosCompletos = session.fragments.filterNotNull()
-            if (fragmentosCompletos.size == session.total) {
+            if (session.fragments.all { it != null }) {
                 sessions.remove(sessionKey)
                 val salida = java.io.ByteArrayOutputStream(session.bytes)
-                fragmentosCompletos.forEach { salida.write(it) }
+                for (f in session.fragments) {
+                    salida.write(f!!)
+                }
                 return salida.toByteArray()
             }
             return null

@@ -134,7 +134,8 @@ class RepositorioUsuariosLocal(
 
     override suspend fun actualizarUbicacion(id: String, ubicacion: Ubicacion) {
         val actual = obtenerPorId(id) ?: Usuario(id = id, nombre = "Usuario")
-        val modificado = actual.copy(ubicacion = ubicacion)
+        val nuevaUbicacion = if (ubicacion.latitud == 0.0 && ubicacion.longitud == 0.0 && ubicacion.timestamp == 0L) null else ubicacion
+        val modificado = actual.copy(ubicacion = nuevaUbicacion)
         cacheUsuariosLocal.guardar(modificado)
     }
 
@@ -160,6 +161,7 @@ class RepositorioUsuariosLocal(
             cacheUsuariosLocal.obtener(peer.usuarioId)
         }.filter { u ->
             val loc = u.ubicacion ?: return@filter false
+            if (loc.latitud == 0.0 && loc.longitud == 0.0) return@filter false
             val dist = distanciaMetros(origen.latitud, origen.longitud, loc.latitud, loc.longitud)
             dist <= radioMetros
         }

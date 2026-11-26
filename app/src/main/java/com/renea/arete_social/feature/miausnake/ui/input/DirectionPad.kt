@@ -2,6 +2,7 @@ package com.renea.arete_social.feature.miausnake.ui.input
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -58,11 +59,13 @@ private fun androidx.compose.foundation.layout.BoxScope.PadZone(
 ) {
     var pressed by remember { mutableStateOf(false) }
     val current by rememberUpdatedState(onDirection)
+    val shape = RoundedCornerShape(14.dp)
     Box(
         Modifier
             .align(align)
             .size(zone)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(shape)
+            .border(1.dp, if (pressed) palette.food else palette.wallEdge.copy(alpha = 0.5f), shape)
             .background(if (pressed) palette.wallEdge else palette.panel)
             .semantics {
                 contentDescription = label
@@ -93,7 +96,7 @@ private fun androidx.compose.foundation.layout.BoxScope.PadZone(
                     lineTo(s * 0.24f, s * 0.68f)
                     close()
                 }
-                drawPath(path, palette.head)
+                drawPath(path, if (pressed) palette.food else palette.head)
             }
         }
     }

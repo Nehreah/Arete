@@ -19,7 +19,7 @@ Un evento o lugar puede aparecer por distintas razones. La aplicación combina l
 
 | Fuente | Cómo se obtiene | Vigencia prevista |
 |---|---|---|
-| **Cercanía física** | La persona está a **500 m o menos** del lugar o evento. | Se conserva durante 24 horas desde la última vez que estuvo cerca. Volver a acercarse renueva el plazo. |
+| **Cercanía física** | La persona está a **2.000 m (2 km) o menos** del lugar o evento. | Se conserva durante 24 horas desde la última vez que estuvo cerca. Volver a acercarse renueva el plazo. |
 | **Descubrimiento reciente** | El lugar o evento se descubrió físicamente y aún no vence ese descubrimiento. | Hasta 24 horas desde el último contacto físico registrado. |
 | **Pase compartido** | Otra persona comparte voluntariamente un descubrimiento y el receptor lo acepta/recibe. | 24 horas para el receptor. Repetir el pase mientras siga visible no reinicia el plazo. |
 | **Modo Súper** | El Modo Súper permite descubrir temporalmente contenido público de la región correspondiente. | Solo mientras el Modo Súper esté activo; no prolonga por sí solo el descubrimiento normal. |
@@ -61,9 +61,15 @@ El Modo Súper es una fuente temporal adicional de descubrimientos regionales:
 
 ---
 
-## 5. Mensajería Directa y Malla Mesh (1-a-1)
+## 5. Mensajería Directa (1-a-1) y Comunicación Híbrida
 
 - **Cifrado E2EE v4:** Todos los mensajes directos se cifran con AES-256-GCM y ECDH P-256. La clave nunca viaja por la red.
+- **Interacción con Amigos Sin Límite de Distancia:**
+  - Si un usuario está agregado en tu lista de amigos confirmados, puedes comunicarte con él a través de Internet (Wi-Fi o Datos Móviles) a cualquier distancia del planeta.
+  - Si ese mismo amigo está cerca físicamente, la conversación conmuta transparentemente a enlace directo Bluetooth LE / Wi-Fi LAN sin consumir datos móviles.
+- **Comunidades, Murales y Gacetas a Distancia vs. Hiperlocales:**
+  - **Comunidades Hiperlocales:** Sus eventos y conversaciones están acotados al radio físico local ($\le 2\text{ km}$).
+  - **Comunidades y Gacetas a Distancia:** Foros y boletines temáticos con alcance global. Se sincronizan por internet hacia los nodos conectados y se propagan oportunistamente por Bluetooth hacia los celulares sin conexión mediante nodos que actúan como «mulas de datos».
 - **Indicador E2EE:** Icono `🔒 E2EE` visible cuando las claves están negociadas; `⚠️ Sin clave` si aún no se ha completado el intercambio de claves públicas.
 - **Mensajes de Voz (PTT):** Transmisión de notas de voz en tiempo real grabadas localmente.
 - **Tarjetas Interactivas Anexadas:** Posibilidad de adjuntar comunidades locales o eventos públicos dentro de la conversación para unirse con un solo toque.

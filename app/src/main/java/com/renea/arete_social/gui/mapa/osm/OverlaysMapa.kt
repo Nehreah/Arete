@@ -94,7 +94,7 @@ internal class ConciliadorOverlays(
         actual?.let { mapView.overlays.remove(it.second) }
         propia = null
 
-        if (ubicacion != null) {
+        if (ubicacion != null && (ubicacion.latitud != 0.0 || ubicacion.longitud != 0.0)) {
             // 1. Círculo de precisión (debajo del punto azul)
             val radioM = max(ubicacion.precisionMetros ?: RADIO_PRECISION_POR_DEFECTO, RADIO_PRECISION_MINIMO)
             val circulo = crearCirculoPrecision(ubicacion.latitud, ubicacion.longitud, radioM.toDouble())

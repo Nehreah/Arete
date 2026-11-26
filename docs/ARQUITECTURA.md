@@ -106,6 +106,18 @@ com.renea.arete_social/
   - Sockets de lectura protegidos con `soTimeout = 15000ms`.
   - Sincronización del puerto de enlace mediante `CountDownLatch` sin esperas activas (`Thread.sleep`).
 
+### 3.3 Internet (Wi-Fi y Datos Móviles) y Nodos Pasarela (Gateway / Data Mule)
+- **InternetMeshBridge:**
+  - Supervisión reactiva mediante `ConnectivityManager.NetworkCallback` diferenciando entre transporte Wi-Fi y Celular (Datos Móviles).
+  - Integra un `PeerConnection` virtual en `MessageRouterMesh` que permite retransmitir paquetes de la red mallada hacia buzones relay remotos.
+  - **Sincronización Asimétrica:** Celulares con internet actúan como puentes de enlace (*Data Mules*), inyectando paquetes hacia la nube y derramando gacetas o mensajes recibidos hacia teléfonos cercanos que solo disponen de Bluetooth LE.
+
+### 3.4 Diferenciación de Ámbitos de Red
+- **Radar Hiperlocal ($\le 2\text{ km}$):** Presencia y eventos acotados estrictamente a un radio de 2.000 metros mediante fórmula de Haversine y celdas geográficas. Coordenadas difusas en modo `APROXIMADA`.
+- **Amigos (Global / Sin límite de distancia):** Mensajería E2EE directa enrutada por identidad criptográfica (`IK`), alternando fluidamente entre Internet y Bluetooth sin interrumpir la sesión.
+- **Comunidades y Gacetas a Distancia:** Publicaciones en libros mayores distribuidos (`communityId`) que viajan por internet y se retransmiten oportunistamente por la malla local.
+- Para más detalles técnicos, consultar la [Guía Integral de Comunicaciones (COMUNICACION_MESH.md)](COMUNICACION_MESH.md).
+
 ---
 
 ## 4. Criptografía de Extremo a Extremo (E2EE)

@@ -59,6 +59,10 @@ internal fun DialogoAjustesPerfil(
     onPerfilPrivadoCambia: (Boolean) -> Unit,
     compartirPorCercania: Boolean,
     onCompartirPorCercaniaCambia: (Boolean) -> Unit,
+    minutosInactividad: Int = 30,
+    onMinutosInactividadCambia: (Int) -> Unit = {},
+    soloTextoEnDatosMoviles: Boolean = true,
+    onSoloTextoEnDatosMovilesCambia: (Boolean) -> Unit = {},
     guardando: Boolean,
     onGuardar: () -> Unit,
     onEditarGustos: () -> Unit,
@@ -194,6 +198,50 @@ internal fun DialogoAjustesPerfil(
                 SelectorCompartirPorCercania(
                     activado = compartirPorCercania,
                     onCambia = onCompartirPorCercaniaCambia
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "AUTO-PAUSA DE UBICACIÓN",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Default
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Pausa el radar automáticamente si no usas la app durante el tiempo indicado.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 10.sp,
+                    fontFamily = FontFamily.Default
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                SelectorAutoPausaUbicacion(
+                    minutosSeleccionados = minutosInactividad,
+                    onSeleccionar = onMinutosInactividadCambia
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "RED Y AHORRO DE DATOS MÓVILES",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Default
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "En conexión celular se transmiten únicamente mensajes ligeros. Fotos e imágenes pesadas se reservan para Wi-Fi o Bluetooth.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 10.sp,
+                    fontFamily = FontFamily.Default
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                SelectorCompartirPorCercania(
+                    activado = soloTextoEnDatosMoviles,
+                    onCambia = onSoloTextoEnDatosMovilesCambia
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -461,5 +509,32 @@ internal fun BotonPildoraVisibilidad(
             fontSize = 11.sp,
             fontWeight = if (activo) FontWeight.Black else FontWeight.Normal
         )
+    }
+}
+
+/** Selector de píldoras para la duración de la auto-pausa de ubicación por inactividad. */
+@Composable
+internal fun SelectorAutoPausaUbicacion(
+    minutosSeleccionados: Int,
+    onSeleccionar: (Int) -> Unit
+) {
+    val opciones = listOf(
+        15 to "15 min",
+        30 to "30 min",
+        60 to "1 hora",
+        0 to "Nunca"
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        opciones.forEach { (minutos, etiqueta) ->
+            BotonPildoraVisibilidad(
+                texto = etiqueta,
+                activo = minutosSeleccionados == minutos,
+                onClick = { onSeleccionar(minutos) },
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }

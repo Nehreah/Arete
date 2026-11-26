@@ -40,6 +40,7 @@ class GestorPerfilMediaBle(
     private val resolverPerfiles: ResolverPerfiles,
     private val miIdProveedor: () -> String?,
     private val esAmigo: (String) -> Boolean,
+    private val esPerfilPrivado: (() -> Boolean)? = null,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 ) {
 
@@ -143,6 +144,11 @@ class GestorPerfilMediaBle(
 
     private suspend fun responderPeticionMedia(hashSha256: String, remitente: String) {
         val miId = miIdProveedor() ?: return
+        // Validar privacidad: si el perfil es privado y el remitente no es amigo, rechazar
+        if (esPerfilPrivado?.invoke() == true && !esAmigo(remitente)) {
+            Log.w(TAG, "Petición de medio $hashSha256 rechazada: perfil privado y remitente no es amigo.")
+            return
+        }
         // Solo responder con medios seguros (miniaturas <= 50 KB)
         val archivo = AlmacenMediaPerfil.obtenerMediaSeguraBle(hashSha256) ?: return
         val bytes = runCatching { archivo.readBytes() }.getOrNull() ?: return
@@ -184,6 +190,10 @@ class GestorPerfilMediaBle(
 
     private suspend fun responderTrozosFaltantes(hashSha256: String, indices: List<Int>, remitente: String) {
         val miId = miIdProveedor() ?: return
+        if (esPerfilPrivado?.invoke() == true && !esAmigo(remitente)) {
+            Log.w(TAG, "Petición de trozos faltantes rechazada: perfil privado.")
+            return
+        }
         val archivo = AlmacenMediaPerfil.obtenerMediaSeguraBle(hashSha256) ?: return
         val bytes = runCatching { archivo.readBytes() }.getOrNull() ?: return
         if (bytes.isEmpty()) return

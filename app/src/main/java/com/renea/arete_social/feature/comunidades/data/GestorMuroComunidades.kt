@@ -18,12 +18,14 @@ object GestorMuroComunidades {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private var prefs: SharedPreferences? = null
 
+    @Synchronized
     fun inicializar(context: Context) {
         if (prefs == null) {
             prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         }
     }
 
+    @Synchronized
     fun obtenerPublicaciones(comunidadId: String): List<PublicacionMuro> {
         val sp = prefs ?: return emptyList()
         val raw = sp.getString("$KEY_PUBLICACIONES_PREFIX$comunidadId", null) ?: return emptyList()
@@ -32,25 +34,38 @@ object GestorMuroComunidades {
         }.getOrDefault(emptyList())
     }
 
+    @Synchronized
     fun guardarPublicacion(comunidadId: String, publicacion: PublicacionMuro) {
         val actuales = obtenerPublicaciones(comunidadId).toMutableList()
         val index = actuales.indexOfFirst { it.id == publicacion.id }
         if (index >= 0) {
-            actuales[index] = publicacion
+            // Preservar likedPorMi local si la publicación viene de la red
+            val local = actuales[index]
+            val fusionada = if (publicacion.autorId != local.autorId || publicacion.likedPorMi != local.likedPorMi) {
+                publicacion.copy(likedPorMi = local.likedPorMi)
+            } else {
+                publicacion
+            }
+            actuales[index] = fusionada
         } else {
             actuales.add(0, publicacion)
         }
-        guardarLista(comunidadId, actuales)
+        // Blindaje: Acotar a un máximo de 200 publicaciones para evitar saturación de SharedPreferences
+        val limitadas = if (actuales.size > 200) actuales.take(200) else actuales
+        guardarLista(comunidadId, limitadas)
     }
 
+    @Synchronized
     fun guardarLista(comunidadId: String, publicaciones: List<PublicacionMuro>) {
         val sp = prefs ?: return
         runCatching {
-            val raw = json.encodeToString(publicaciones)
+            val limitadas = if (publicaciones.size > 200) publicaciones.take(200) else publicaciones
+            val raw = json.encodeToString(limitadas)
             sp.edit().putString("$KEY_PUBLICACIONES_PREFIX$comunidadId", raw).apply()
         }
     }
 
+    @Synchronized
     fun toggleLike(comunidadId: String, publicacionId: String, miUsuarioId: String): PublicacionMuro? {
         val actuales = obtenerPublicaciones(comunidadId).toMutableList()
         val index = actuales.indexOfFirst { it.id == publicacionId }
@@ -68,8 +83,26 @@ object GestorMuroComunidades {
         return actualizada
     }
 
+    /**
+     * Registra el like emitido por un peer remoto sin alterar el estado `likedPorMi` del usuario local.
+     */
+    @Synchronized
+    fun registrarLikeRemoto(comunidadId: String, publicacionId: String, usuarioRemotoId: String): PublicacionMuro? {
+        val actuales = obtenerPublicaciones(comunidadId).toMutableList()
+        val index = actuales.indexOfFirst { it.id == publicacionId }
+        if (index < 0) return null
+
+        val actual = actuales[index]
+        // Se incrementa el contador de likes recibido de la malla; likedPorMi permanece inalterado para el usuario local
+        val actualizada = actual.copy(likes = actual.likes + 1)
+        actuales[index] = actualizada
+        guardarLista(comunidadId, actuales)
+        return actualizada
+    }
+
     private const val KEY_ARCHIVOS_PREFIX = "archivos_comunidad_"
 
+    @Synchronized
     fun obtenerArchivos(comunidadId: String): List<com.renea.arete_social.feature.comunidades.ArchivoComunidad> {
         val sp = prefs ?: return emptyList()
         val raw = sp.getString("$KEY_ARCHIVOS_PREFIX$comunidadId", null) ?: return emptyList()
@@ -78,6 +111,7 @@ object GestorMuroComunidades {
         }.getOrDefault(emptyList())
     }
 
+    @Synchronized
     fun guardarArchivo(comunidadId: String, archivo: com.renea.arete_social.feature.comunidades.ArchivoComunidad) {
         val actuales = obtenerArchivos(comunidadId).toMutableList()
         val index = actuales.indexOfFirst { it.id == archivo.id }
@@ -88,7 +122,8 @@ object GestorMuroComunidades {
         }
         val sp = prefs ?: return
         runCatching {
-            val raw = json.encodeToString(actuales)
+            val limitados = if (actuales.size > 100) actuales.take(100) else actuales
+            val raw = json.encodeToString(limitados)
             sp.edit().putString("$KEY_ARCHIVOS_PREFIX$comunidadId", raw).apply()
         }
     }

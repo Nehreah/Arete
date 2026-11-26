@@ -82,4 +82,21 @@ class ProximityManagerGpsUnitTest {
         assertTrue("La distancia debe ser menor a 5 metros", d.distanciaMetros!! < 5.0)
         assertEquals(ubicacionVecino.latitud, d.ubicacion?.latitud)
     }
+
+    @Test
+    fun `filtro de distancia a 2 km discrimina correctamente nodos a 1800m y 2200m`() {
+        val origen = Ubicacion(3.4500, -76.5300, System.currentTimeMillis())
+        // ~1.8 km al norte: aprox 0.0162 grados de latitud
+        val nodoCercano1800m = Ubicacion(3.4662, -76.5300, System.currentTimeMillis())
+        // ~2.2 km al norte: aprox 0.0198 grados de latitud
+        val nodoLejano2200m = Ubicacion(3.4698, -76.5300, System.currentTimeMillis())
+
+        val dist1 = distanciaMetros(origen, nodoCercano1800m)
+        val dist2 = distanciaMetros(origen, nodoLejano2200m)
+
+        assertEquals(2000.0, com.renea.arete_social.data.proximity.gps.RADIO_CERCANOS_METROS, 0.001)
+        assertTrue("Nodo a ~1.8km debe estar dentro de 2 km: $dist1", dist1 <= com.renea.arete_social.data.proximity.gps.RADIO_CERCANOS_METROS)
+        assertTrue("Nodo a ~2.2km debe estar fuera de 2 km: $dist2", dist2 > com.renea.arete_social.data.proximity.gps.RADIO_CERCANOS_METROS)
+    }
 }
+

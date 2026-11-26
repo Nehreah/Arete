@@ -176,6 +176,8 @@ class RepositorioMensajesHibrido(
         if (p.chatId == com.renea.arete_social.domain.model.ProtocoloPerfilBle.CHAT_ID) return
         // Pases de descubrimiento (lugares y eventos compartidos por cercanía): los atiende GestorPasesBle, no son mensajes.
         if (p.chatId == com.renea.arete_social.domain.model.ProtocoloPaseBle.CHAT_ID) return
+        // Señales de llamadas y notificaciones de timbre: las procesa GestorLlamadasYAudio, nunca son mensajes de chat.
+        if (p.chatId == "senales-mesh" || p.contenido.startsWith("[SENAL:")) return
 
         // Paquetes internos de la app (JSON con "type"): solo regalos y avisos de amistad se
         // conservan como mensaje (se ven en texto amable). El resto son datos técnicos: nunca

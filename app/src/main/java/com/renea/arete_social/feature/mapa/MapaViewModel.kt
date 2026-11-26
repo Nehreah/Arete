@@ -16,6 +16,7 @@ import com.renea.arete_social.feature.descubrimiento.ServicioPases
 import com.renea.arete_social.feature.descubrimiento.ServicioRegionActual
 import com.renea.arete_social.feature.descubrimiento.ServicioVisionRegional
 import com.renea.arete_social.feature.tamagotchi.superpoderes.ServicioModoSuper
+import com.renea.arete_social.feature.ubicacion.GestorAutoPausaUbicacion
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,7 +49,7 @@ class MapaViewModel(
     private val repositorioEventos: RepositorioEventos,
     private val repositorioUsuarios: RepositorioUsuarios,
     private val usuarioId: String,
-    private val radioMetros: Double = 500.0,
+    private val radioMetros: Double = 2000.0,
     private val servicioDescubrimiento: ServicioDescubrimiento? = null,
     private val servicioRegionActual: ServicioRegionActual? = null,
     private val servicioModoSuper: ServicioModoSuper? = null,
@@ -56,7 +57,8 @@ class MapaViewModel(
     private val servicioPases: ServicioPases? = null,
     private val repositorioLibreria: com.renea.arete_social.domain.repository.RepositorioLibreria? = null,
     private val petRepository: PetRepository? = null,
-    private val context: Context? = null
+    private val context: Context? = null,
+    private val gestorAutoPausa: GestorAutoPausaUbicacion? = null
 ) : ViewModel() {
 
     /** Avisos discretos (p. ej. «Alguien cercano te compartió 3 lugares por 24 h»). La pantalla los muestra como un aviso breve. */
@@ -118,6 +120,8 @@ class MapaViewModel(
         trabajos += viewModelScope.launch {
             while (isActive) {
                 delay(30_000L)
+                // No refrescar si la ubicación está pausada por inactividad (ahorra batería y privacidad)
+                if (gestorAutoPausa?.estaPausado() == true) continue
                 ultimaLoc?.let { loc ->
                     val ahora = System.currentTimeMillis()
                     // B-09: No refrescar timestamp si la fijación GPS tiene más de 2 minutos

@@ -47,14 +47,14 @@ data class LevelSpec(
         else -> "Borde sólido"
     }
 
-    fun toLevel(mode: GameMode, relaxed: Boolean = false): Level {
+    fun toLevel(mode: GameMode, relaxed: Boolean = false, forceFixedSeed: Boolean = false): Level {
         val effectiveSpeed = if (relaxed) {
             SpeedCurve.build((startMs * 1.3 + 0.5).toInt(), (minMs * 1.3 + 0.5).toInt(), tau)
         } else {
             speed
         }
         val goal = if (mode == GameMode.META) goalBites else null
-        val fixedSeed = if (mode == GameMode.META) seed else null
+        val fixedSeed = if (forceFixedSeed) seed else null
         return Level(
             id = id,
             version = levelVersion,

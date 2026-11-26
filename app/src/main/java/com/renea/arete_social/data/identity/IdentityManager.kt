@@ -37,6 +37,8 @@ class IdentityManager {
     // ─── Constantes de derivación ───────────────────────────────────────────
 
     private val DOMAIN_INFO = "arete/identity/v1".toByteArray(StandardCharsets.UTF_8)
+    // BIP-39 estándar especifica exactamente 2048 iteraciones para derivación determinista de semilla mnemotécnica.
+    // Esto garantiza que la identidad (IK) de usuarios existentes no cambie y evita ANR en arranque.
     private val PBKDF2_ITERATIONS = 2048
     private val PBKDF2_KEY_BYTES = 64 // 512 bits de entropía inicial
 
@@ -74,8 +76,8 @@ class IdentityManager {
             val legacyWords = legacyPrefs.getString("ik_mnemonic_words", null)
             if (!legacyWords.isNullOrBlank()) {
                 savedWords = legacyWords
-                securePrefs.edit().putString("ik_mnemonic_words", legacyWords).apply()
-                legacyPrefs.edit().remove("ik_mnemonic_words").apply()
+                securePrefs.edit().putString("ik_mnemonic_words", legacyWords).commit()
+                legacyPrefs.edit().remove("ik_mnemonic_words").commit()
             }
         }
 
@@ -89,8 +91,8 @@ class IdentityManager {
                 _deviceId = savedDevId?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
                     ?: java.util.UUID.randomUUID().also {
                         val idStr = it.toString()
-                        securePrefs.edit().putString("local_device_id", idStr).apply()
-                        legacyPrefs.edit().putString("local_device_id", idStr).apply()
+                        securePrefs.edit().putString("local_device_id", idStr).commit()
+                        legacyPrefs.edit().putString("local_device_id", idStr).commit()
                     }
                 return
             }
@@ -103,13 +105,13 @@ class IdentityManager {
         securePrefs.edit()
             .putString("ik_mnemonic_words", wordsStr)
             .putString("local_device_id", devId.toString())
-            .apply()
+            .commit()
 
         // Eliminar cualquier residuo en texto claro
         legacyPrefs.edit()
             .remove("ik_mnemonic_words")
             .putString("local_device_id", devId.toString())
-            .apply()
+            .commit()
     }
 
     fun getOrLoadDeviceId(context: android.content.Context? = null): java.util.UUID {
@@ -123,8 +125,8 @@ class IdentityManager {
             val devId = saved?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
                 ?: java.util.UUID.randomUUID().also {
                     val idStr = it.toString()
-                    securePrefs.edit().putString("local_device_id", idStr).apply()
-                    legacyPrefs.edit().putString("local_device_id", idStr).apply()
+                    securePrefs.edit().putString("local_device_id", idStr).commit()
+                    legacyPrefs.edit().putString("local_device_id", idStr).commit()
                 }
             _deviceId = devId
             return devId

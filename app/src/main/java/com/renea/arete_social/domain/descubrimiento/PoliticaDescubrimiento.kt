@@ -7,8 +7,8 @@ import com.renea.arete_social.domain.model.OrigenVisibilidad
 import com.renea.arete_social.domain.model.TipoEntidadMapa
 import com.renea.arete_social.domain.util.Reloj
 
-/** Radio de descubrimiento: lo que está a esta distancia o menos se ve en el mapa. */
-const val RADIO_DESCUBRIMIENTO_M = 500.0
+/** Radio de descubrimiento: lo que está a esta distancia o menos (2 km) se ve en el radar y mapa. */
+const val RADIO_DESCUBRIMIENTO_M = 2000.0
 
 /** Cuánto sigue visible algo descubierto (24 h). */
 const val DURACION_DESCUBRIMIENTO_MS = 24 * 60 * 60 * 1000L

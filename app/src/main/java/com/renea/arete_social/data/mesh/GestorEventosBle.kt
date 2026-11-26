@@ -361,6 +361,13 @@ class GestorEventosBle(
         }.getOrNull() ?: return
 
         val local = database.eventDao().getEvent(payload.id)
+        // Blindaje contra secuestro/falsificación de eventos: Si el evento ya existe, el organizador
+        // DEBE ser idéntico al registrado originalmente. Nadie más puede actualizar o cancelar un evento ajeno.
+        if (local != null && !local.organizerIkHex.equals(payload.organizerIkHex, ignoreCase = true)) {
+            SyncLogger.w(TAG, "Rechazada actualización de evento ${payload.id}: organizador no coincide (${payload.organizerIkHex} != ${local.organizerIkHex})")
+            return
+        }
+
         if (local == null || payload.version > local.version || payload.updatedAtMs > local.updatedAtMs) {
             val entity = EventEntity(
                 id = payload.id,

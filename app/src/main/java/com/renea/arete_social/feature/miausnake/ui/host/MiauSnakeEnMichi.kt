@@ -2,17 +2,24 @@ package com.renea.arete_social.feature.miausnake.ui.host
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -24,11 +31,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.renea.arete_social.feature.miausnake.levels.Medal
+import com.renea.arete_social.feature.miausnake.ui.maps.LevelThumbnail
+import com.renea.arete_social.feature.miausnake.ui.play.SnakeBadge
+import com.renea.arete_social.feature.miausnake.ui.play.SnakeCard
+import com.renea.arete_social.feature.miausnake.ui.play.SnakeIconButton
 import com.renea.arete_social.BuildConfig
 import com.renea.arete_social.AreteApp
 import com.renea.arete_social.domain.model.FeatureFlags
@@ -314,6 +332,13 @@ private fun ColumnScope.PieDeResultado(
     }
 }
 
+private enum class SnakeNavTab(val label: String, val icon: String) {
+    JUGAR("Jugar", "🎮"),
+    MAPAS("Mapas", "🗺️"),
+    RETOS("Retos", "🏆"),
+    AJUSTES("Ajustes", "⚙️")
+}
+
 @Composable
 private fun MenuSnake(
     estado: SnakeSesionUi,
@@ -330,35 +355,301 @@ private fun MenuSnake(
     onCercania: (() -> Unit)?,
     onVolver: () -> Unit
 ) {
+    var tabActual by remember { mutableStateOf(SnakeNavTab.JUGAR) }
     val abriendo = estado is SnakeSesionUi.Abriendo
-    Column(
-        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        SnakeText("MIAU SNAKE", palette, size = 24, bold = true)
-        SnakeText("Juega tú. Si la partida es de verdad, cuenta como jugar con $nombre.", palette, size = 13, dim = true)
+    val cat = catalogo.getOrNull()
+    val totalMapas = cat?.levels?.size ?: 20
+    val totalOros = cat?.levels?.count { libro.medal(it) == Medal.GOLD } ?: 0
 
+    Column(
+        Modifier
+            .fillMaxSize()
+            .safeDrawingPadding()
+            .background(palette.background)
+    ) {
+        // Barra superior moderna
+        SnakeTopBar(
+            nombre = nombre,
+            palette = palette,
+            modo = modo,
+            oros = totalOros,
+            total = totalMapas,
+            onVolver = onVolver
+        )
+
+        // Avisos de estado si la sesión tiene alguna alerta
         when (estado) {
-            is SnakeSesionUi.NoDisponible -> Aviso(
-                estado.motivo.texto(nombre) + " Puedes jugar sin recompensa: esa partida no cuenta como jugar.", palette
-            )
-            is SnakeSesionUi.ErrorCarga -> Aviso(
-                "No se pudo abrir Miau Snake. Inténtalo de nuevo o vuelve a $nombre." +
-                    (estado.causa.message?.takeIf { it.isNotBlank() }?.let { "\n($it)" } ?: ""),
-                palette
-            )
-            is SnakeSesionUi.Abriendo -> SnakeText("Preparando la partida…", palette, size = 13, dim = true)
+            is SnakeSesionUi.NoDisponible -> Box(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Aviso(
+                    estado.motivo.texto(nombre) + " Puedes jugar sin recompensa: esa partida no cuenta como jugar.",
+                    palette
+                )
+            }
+            is SnakeSesionUi.ErrorCarga -> Box(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Aviso(
+                    "No se pudo abrir Miau Snake. Inténtalo de nuevo o vuelve a $nombre." +
+                        (estado.causa.message?.takeIf { it.isNotBlank() }?.let { "\n($it)" } ?: ""),
+                    palette
+                )
+            }
+            is SnakeSesionUi.Abriendo -> Box(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                SnakeText("Preparando la partida…", palette, size = 13, dim = true)
+            }
             else -> Unit
         }
 
-        MenuSection("Modo", palette)
-        MenuChoice(GameMode.entries.toList(), modo, { it.title }, palette, onModo)
-        SnakeText(
-            if (modo == GameMode.META) "Meta de bocados, medallas y mejor tiempo." else "Sin meta: gana la puntuación.",
-            palette, size = 12, dim = true
-        )
+        // Vista de la pestaña activa
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            when (tabActual) {
+                SnakeNavTab.JUGAR -> TabJugar(
+                    nombre = nombre,
+                    palette = palette,
+                    modo = modo,
+                    onModo = onModo,
+                    specSel = specSel,
+                    libro = libro,
+                    abriendo = abriendo,
+                    totalOros = totalOros,
+                    totalMapas = totalMapas,
+                    onJugarConMichi = onJugarConMichi,
+                    onPractica = onPractica,
+                    onIrAMapas = { tabActual = SnakeNavTab.MAPAS }
+                )
+                SnakeNavTab.MAPAS -> TabMapas(
+                    catalogo = catalogo,
+                    libro = libro,
+                    modo = modo,
+                    specSel = specSel,
+                    palette = palette,
+                    onMapa = onMapa,
+                    onJugarConMichi = onJugarConMichi,
+                    abriendo = abriendo
+                )
+                SnakeNavTab.RETOS -> TabRetos(
+                    nombre = nombre,
+                    palette = palette,
+                    abriendo = abriendo,
+                    onRetos = onRetos,
+                    onCercania = onCercania
+                )
+                SnakeNavTab.AJUSTES -> TabAjustes(
+                    ajustes = ajustes,
+                    palette = palette,
+                    onAjustes = onAjustes
+                )
+            }
+        }
 
-        MenuSection("Mapa", palette)
+        // Barra inferior de navegación
+        SnakeBottomNav(
+            tabActual = tabActual,
+            palette = palette,
+            onTabSelect = { tabActual = it }
+        )
+    }
+}
+
+@Composable
+private fun SnakeTopBar(
+    nombre: String,
+    palette: GamePalette,
+    modo: GameMode,
+    oros: Int,
+    total: Int,
+    onVolver: () -> Unit
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            SnakeIconButton(
+                onClick = onVolver,
+                label = "Volver a $nombre",
+                palette = palette
+            ) {
+                BasicText(
+                    "✕",
+                    style = TextStyle(color = palette.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                )
+            }
+            Column {
+                SnakeText("MIAU SNAKE", palette, size = 18, bold = true)
+                SnakeText("Compañero: $nombre", palette, size = 12, dim = true)
+            }
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            SnakeBadge(if (modo == GameMode.META) "META" else "INFINITO", palette, highlight = true)
+            if (oros > 0) {
+                SnakeBadge("★ $oros/$total", palette)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TabJugar(
+    nombre: String,
+    palette: GamePalette,
+    modo: GameMode,
+    onModo: (GameMode) -> Unit,
+    specSel: LevelSpec?,
+    libro: ProgressBook,
+    abriendo: Boolean,
+    totalOros: Int,
+    totalMapas: Int,
+    onJugarConMichi: () -> Unit,
+    onPractica: () -> Unit,
+    onIrAMapas: () -> Unit
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Tarjeta Hero del Mapa
+        if (specSel != null) {
+            val record = libro.get(specSel, modo)
+            val medal = libro.medal(specSel)
+            SnakeCard(palette = palette, highlight = true, modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SnakeBadge("MAPA ACTUAL", palette, highlight = true)
+                        SnakeText("★".repeat(specSel.difficulty), palette, size = 13, bold = true)
+                    }
+
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier
+                                .size(96.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .border(1.dp, palette.wallEdge.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                        ) {
+                            LevelThumbnail(specSel, palette, Modifier.fillMaxSize())
+                        }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            SnakeText("${specSel.number.toString().padStart(2, '0')}. ${specSel.name}", palette, size = 18, bold = true)
+                            SnakeText(specSel.detail(modo), palette, size = 12, dim = true)
+                            if (modo == GameMode.META) {
+                                val statusText = if (medal == Medal.NONE) "Sin medalla" else "Medalla: ${medal.label}"
+                                SnakeText(statusText, palette, size = 12, bold = medal != Medal.NONE)
+                            } else {
+                                SnakeText("Récord: ${record?.bestScore ?: 0} pts", palette, size = 12, bold = true)
+                            }
+                        }
+                    }
+
+                    MenuSection("Modo de Juego", palette)
+                    MenuChoice(GameMode.entries.toList(), modo, { it.title }, palette, onModo)
+
+                    SnakeButton(
+                        "Explorar otros mapas →",
+                        onIrAMapas,
+                        palette,
+                        Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        // Tarjeta de acompañamiento con Michi
+        SnakeCard(palette = palette, modifier = Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(palette.background)
+                        .border(1.dp, palette.wallEdge.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    BasicText("🐱", style = TextStyle(fontSize = 22.sp))
+                }
+                Column(Modifier.weight(1f)) {
+                    SnakeText("$nombre está listo", palette, size = 14, bold = true)
+                    SnakeText("Si juegas una partida real, Michi ganará afecto y celebrará tus victorias.", palette, size = 12, dim = true)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // Botones de acción principales
+        SnakeButton(
+            if (abriendo) "Preparando…" else "JUGAR CON ${nombre.uppercase()}",
+            { if (!abriendo) onJugarConMichi() },
+            palette,
+            Modifier.fillMaxWidth(),
+            primary = true
+        )
+        SnakeButton(
+            "Jugar sin recompensa (práctica)",
+            { if (!abriendo) onPractica() },
+            palette,
+            Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun TabMapas(
+    catalogo: Result<LevelCatalog>,
+    libro: ProgressBook,
+    modo: GameMode,
+    specSel: LevelSpec?,
+    palette: GamePalette,
+    onMapa: (LevelSpec) -> Unit,
+    onJugarConMichi: () -> Unit,
+    abriendo: Boolean
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                SnakeText("EXPLORADOR DE MAPAS", palette, size = 16, bold = true)
+                SnakeText("20 mapas oficiales agrupados por paquetes", palette, size = 12, dim = true)
+            }
+            specSel?.let {
+                SnakeBadge("Mapa ${it.number}", palette, highlight = true)
+            }
+        }
+
         val cat = catalogo.getOrNull()
         if (cat == null) {
             Aviso(
@@ -367,18 +658,112 @@ private fun MenuSnake(
             )
         } else {
             MapSelector(cat, libro, modo, specSel?.id, palette, onMapa)
-            specSel?.let { SnakeText(it.name + " — " + it.detail(modo), palette, size = 12) }
         }
 
-        MenuSection("Control", palette)
+        if (specSel != null) {
+            Spacer(Modifier.height(4.dp))
+            SnakeButton(
+                if (abriendo) "Preparando…" else "Jugar ${specSel.name}",
+                { if (!abriendo) onJugarConMichi() },
+                palette,
+                Modifier.fillMaxWidth(),
+                primary = true
+            )
+        }
+    }
+}
+
+@Composable
+private fun TabRetos(
+    nombre: String,
+    palette: GamePalette,
+    abriendo: Boolean,
+    onRetos: () -> Unit,
+    onCercania: (() -> Unit)?
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SnakeText("RETOS Y COMUNIDAD", palette, size = 16, bold = true)
+        SnakeText("Desafía a otros jugadores y compite con fantasmas de repetición", palette, size = 12, dim = true)
+
+        SnakeCard(palette = palette, modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BasicText("⭐", style = TextStyle(fontSize = 18.sp))
+                    SnakeText("RETO DEL DÍA & RETOS QR", palette, size = 15, bold = true)
+                }
+                SnakeText(
+                    "Juega el mapa diario con la misma semilla global para competir en igualdad, o escanea un código QR para jugar contra la sombra de un amigo.",
+                    palette,
+                    size = 12,
+                    dim = true
+                )
+                Spacer(Modifier.height(4.dp))
+                SnakeButton(
+                    "Abrir Retos y Códigos QR",
+                    { if (!abriendo) onRetos() },
+                    palette,
+                    Modifier.fillMaxWidth(),
+                    primary = true
+                )
+            }
+        }
+
+        if (onCercania != null) {
+            SnakeCard(palette = palette, modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        BasicText("📡", style = TextStyle(fontSize = 18.sp))
+                        SnakeText("DUELO CERCANO POR RED MESH", palette, size = 15, bold = true)
+                    }
+                    SnakeText(
+                        "Duelo simultáneo con un teléfono cercano usando la red local de Aréte sin internet.",
+                        palette,
+                        size = 12,
+                        dim = true
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    SnakeButton(
+                        "Buscar duelo cercano",
+                        { if (!abriendo) onCercania() },
+                        palette,
+                        Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TabAjustes(
+    ajustes: PlaySettings,
+    palette: GamePalette,
+    onAjustes: (PlaySettings) -> Unit
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        SnakeText("AJUSTES Y PREFERENCIAS", palette, size = 16, bold = true)
+
+        MenuSection("Modo de Control", palette)
         MenuChoice(
             ControlMode.entries.toList(), ajustes.control,
-            { if (it == ControlMode.SWIPE) "Swipe" else "Cruceta" }, palette
+            { if (it == ControlMode.SWIPE) "Swipe (Deslizar)" else "Cruceta táctil" }, palette
         ) { onAjustes(ajustes.copy(control = it)) }
         MenuToggle("Modo zurdo", ajustes.leftHanded, palette) { onAjustes(ajustes.copy(leftHanded = it)) }
-        MenuToggle("Vibración", ajustes.vibration, palette) { onAjustes(ajustes.copy(vibration = it)) }
+        MenuToggle("Vibración háptica", ajustes.vibration, palette) { onAjustes(ajustes.copy(vibration = it)) }
 
-        MenuSection("Accesibilidad", palette)
+        MenuSection("Accesibilidad y Ritmo", palette)
         MenuToggle("Contraste alto", ajustes.highContrast, palette) { onAjustes(ajustes.copy(highContrast = it)) }
         MenuToggle("Ritmo relajado (sin récords)", ajustes.relaxed, palette) { onAjustes(ajustes.copy(relaxed = it)) }
 
@@ -394,23 +779,67 @@ private fun MenuSnake(
                 )
             }
         }
+    }
+}
 
-        Spacer(Modifier.height(8.dp))
-        SnakeButton(
-            if (abriendo) "Preparando…" else "JUGAR CON ${nombre.uppercase()}",
-            { if (!abriendo) onJugarConMichi() }, palette, Modifier.fillMaxWidth(), primary = true
-        )
-        SnakeButton("Jugar sin recompensa", { if (!abriendo) onPractica() }, palette, Modifier.fillMaxWidth())
-        SnakeButton("Retos con amigos y reto del día", { if (!abriendo) onRetos() }, palette, Modifier.fillMaxWidth())
-        onCercania?.let { SnakeButton("Partida cercana (duelo con un amigo)", { if (!abriendo) it() }, palette, Modifier.fillMaxWidth()) }
-        SnakeButton("Volver", onVolver, palette, Modifier.fillMaxWidth())
+@Composable
+private fun SnakeBottomNav(
+    tabActual: SnakeNavTab,
+    palette: GamePalette,
+    onTabSelect: (SnakeNavTab) -> Unit
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(palette.panel)
+            .border(1.dp, palette.wallEdge.copy(alpha = 0.45f))
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        for (tab in SnakeNavTab.entries) {
+            val activa = tab == tabActual
+            val shape = RoundedCornerShape(12.dp)
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .clip(shape)
+                    .background(if (activa) palette.food else Color.Transparent)
+                    .clickable(role = Role.Tab, onClickLabel = tab.label) { onTabSelect(tab) },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    BasicText(
+                        tab.icon,
+                        style = TextStyle(fontSize = 14.sp)
+                    )
+                    BasicText(
+                        tab.label,
+                        style = TextStyle(
+                            color = if (activa) palette.background else palette.textDim,
+                            fontSize = 13.sp,
+                            fontWeight = if (activa) FontWeight.Bold else FontWeight.Medium
+                        )
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
 private fun Aviso(texto: String, palette: GamePalette) {
     Box(
-        Modifier.fillMaxWidth().background(palette.panel).padding(12.dp),
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .border(1.dp, palette.wallEdge.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .background(palette.panel)
+            .padding(12.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         SnakeText(texto, palette, size = 13)

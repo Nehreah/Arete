@@ -97,6 +97,24 @@ class PinesIdentidad(
         clave: String,
         estado: EstadoVerificacionIdentidad = EstadoVerificacionIdentidad.NO_VERIFICADO
     ) {
+        val pinExistente = obtener(usuarioId)
+        val estadoExistente = obtenerEstado(usuarioId)
+
+        // S-02: Si ya existe un pin previo y la nueva clave es discordante:
+        if (pinExistente != null && pinExistente != clave) {
+            // Un contacto VERIFICADO nunca se degrada ni sobreescribe por un paquete NO_VERIFICADO
+            if (estadoExistente == EstadoVerificacionIdentidad.VERIFICADO && estado != EstadoVerificacionIdentidad.VERIFICADO) {
+                Log.w(TAG, "Intento de sobreescribir identidad VERIFICADA de $usuarioId rechazado por seguridad.")
+                return
+            }
+            // Si estaba en NO_VERIFICADO y llega una clave distinta sin verificación, marcar conflicto
+            if (estado != EstadoVerificacionIdentidad.VERIFICADO) {
+                Log.w(TAG, "Conflicto TOFU al fijar clave para $usuarioId: se mantiene pin previo y se alerta conflicto.")
+                actualizarEstado(usuarioId, EstadoVerificacionIdentidad.ALERTA_CONFLICTO)
+                return
+            }
+        }
+
         val editor = prefs.edit()
         for (c in clavesCandidatas(usuarioId)) {
             editor.putString("pin_$c", clave)

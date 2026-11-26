@@ -36,9 +36,9 @@ class PoliticaDescubrimientoTest {
     }
 
     @Test
-    fun `en el limite exacto de 500 m esta cerca y a 501 m ya no`() {
-        assertEquals(EstadoDescubrimiento.Cerca, politica.estadoDe(null, 500.0))
-        assertEquals(EstadoDescubrimiento.NoDescubierto, politica.estadoDe(null, 500.01))
+    fun `en el limite exacto de 2000 m esta cerca y a 2001 m ya no`() {
+        assertEquals(EstadoDescubrimiento.Cerca, politica.estadoDe(null, 2000.0))
+        assertEquals(EstadoDescubrimiento.NoDescubierto, politica.estadoDe(null, 2000.01))
     }
 
     @Test

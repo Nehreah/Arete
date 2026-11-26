@@ -562,6 +562,16 @@ fun PerfilScreen(
                         com.renea.arete_social.data.local.ajustes.AjustesPases.compartirActivado(contextoAjustes)
                     )
                 }
+                var minutosInactividad by androidx.compose.runtime.remember {
+                    androidx.compose.runtime.mutableStateOf(
+                        com.renea.arete_social.data.local.ajustes.AjustesInactividadUbicacion.minutosInactividad(contextoAjustes)
+                    )
+                }
+                var soloTextoEnDatos by androidx.compose.runtime.remember {
+                    androidx.compose.runtime.mutableStateOf(
+                        com.renea.arete_social.data.local.ajustes.AjustesRed.soloTextoEnDatosMoviles(contextoAjustes)
+                    )
+                }
                 DialogoAjustesPerfil(
                     nombre = nombre,
                     onNombreCambia = { nombre = it },
@@ -575,6 +585,16 @@ fun PerfilScreen(
                     onCompartirPorCercaniaCambia = {
                         compartirPorCercania = it
                         com.renea.arete_social.data.local.ajustes.AjustesPases.definirCompartir(contextoAjustes, it)
+                    },
+                    minutosInactividad = minutosInactividad,
+                    onMinutosInactividadCambia = {
+                        minutosInactividad = it
+                        com.renea.arete_social.data.local.ajustes.AjustesInactividadUbicacion.definirMinutosInactividad(contextoAjustes, it)
+                    },
+                    soloTextoEnDatosMoviles = soloTextoEnDatos,
+                    onSoloTextoEnDatosMovilesCambia = {
+                        soloTextoEnDatos = it
+                        com.renea.arete_social.data.local.ajustes.AjustesRed.definirSoloTextoEnDatosMoviles(contextoAjustes, it)
                     },
                     guardando = actual.guardando,
                     onGuardar = {

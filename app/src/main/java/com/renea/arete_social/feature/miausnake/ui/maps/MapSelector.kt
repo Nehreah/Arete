@@ -2,18 +2,25 @@ package com.renea.arete_social.feature.miausnake.ui.maps
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,11 +47,11 @@ import com.renea.arete_social.feature.miausnake.levels.ProgressBook
 import com.renea.arete_social.feature.miausnake.levels.formatTime
 import com.renea.arete_social.feature.miausnake.ui.theme.GamePalette
 
-private const val COLUMNS = 3
+private const val COLUMNS = 2
 
 /**
- * Selector de mapas por packs: una cuadrícula de tarjetas con miniatura, nombre, dificultad y
- * medalla (modo meta) o récord (modo infinito). Los 20 mapas están abiertos desde el principio.
+ * Selector de mapas por packs: interfaz moderna con filtro por paquetes y tarjetas estilizadas.
+ * Los 20 mapas están disponibles desde el principio.
  */
 @Composable
 fun MapSelector(
@@ -56,33 +63,85 @@ fun MapSelector(
     onSelect: (LevelSpec) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        for (pack in 1..MapPacks.COUNT) {
-            val specs = catalog.pack(pack)
-            if (specs.isEmpty()) continue
-            val gold = specs.count { book.medal(it) == Medal.GOLD }
-            BasicText(
-                "PACK ${pack.toString().padStart(2, '0')} · ${MapPacks.title(pack).uppercase()} · ${MapPacks.edgeTitle(pack)}" +
-                    (if (mode == GameMode.META) "  ·  oros $gold/${specs.size}" else ""),
-                Modifier.padding(top = 6.dp),
-                style = TextStyle(color = palette.textDim, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            )
-            for (row in specs.chunked(COLUMNS)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (spec in row) {
-                        MapCard(
-                            spec = spec,
-                            record = book.get(spec, mode),
-                            medal = book.medal(spec),
-                            mode = mode,
-                            selected = spec.id == selectedId,
-                            palette = palette,
-                            onClick = { onSelect(spec) },
-                            modifier = Modifier.weight(1f)
+    val initialPack = remember(selectedId) {
+        selectedId?.let { id ->
+            val num = id.substringAfterLast('_').toIntOrNull() ?: 1
+            ((num - 1) / 5) + 1
+        } ?: 1
+    }
+    var packSeleccionado by remember(initialPack) {
+        mutableIntStateOf(initialPack.coerceIn(1, MapPacks.COUNT))
+    }
+
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Selector de packs en fila horizontal
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            for (p in 1..MapPacks.COUNT) {
+                val activo = p == packSeleccionado
+                val shape = RoundedCornerShape(10.dp)
+                val goldCount = catalog.pack(p).count { book.medal(it) == Medal.GOLD }
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(shape)
+                        .border(1.dp, if (activo) palette.food else palette.wallEdge.copy(alpha = 0.4f), shape)
+                        .background(if (activo) palette.panel else palette.background.copy(alpha = 0.4f))
+                        .clickable(role = Role.Tab, onClickLabel = "Pack $p") { packSeleccionado = p },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CardText(
+                            "PACK $p",
+                            if (activo) palette.food else palette.text,
+                            12,
+                            bold = true
                         )
+                        if (mode == GameMode.META && goldCount > 0) {
+                            CardText("★ $goldCount", palette.food, 12, bold = true)
+                        } else {
+                            CardText(MapPacks.title(p), palette.textDim, 12)
+                        }
                     }
-                    repeat(COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
                 }
+            }
+        }
+
+        val specs = catalog.pack(packSeleccionado)
+        val packTitle = MapPacks.title(packSeleccionado).uppercase()
+        val edgeTitle = MapPacks.edgeTitle(packSeleccionado)
+        val orosPack = specs.count { book.medal(it) == Medal.GOLD }
+
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CardText("PACK $packSeleccionado: $packTitle · $edgeTitle", palette.textDim, 12, bold = true)
+            if (mode == GameMode.META) {
+                CardText("Oros: $orosPack/${specs.size}", palette.food, 12, bold = true)
+            }
+        }
+
+        // Cuadrícula de 2 columnas para que las miniaturas sean grandes y nítidas
+        for (row in specs.chunked(COLUMNS)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                for (spec in row) {
+                    MapCard(
+                        spec = spec,
+                        record = book.get(spec, mode),
+                        medal = book.medal(spec),
+                        mode = mode,
+                        selected = spec.id == selectedId,
+                        palette = palette,
+                        onClick = { onSelect(spec) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                repeat(COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
@@ -99,36 +158,76 @@ fun MapCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val fg = if (selected) palette.background else palette.text
-    val dim = if (selected) palette.background else palette.textDim
     val status = when (mode) {
-        GameMode.META -> if (medal == Medal.NONE) "sin medalla" else medal.label
-        GameMode.INFINITE -> "récord ${record?.bestScore ?: 0}"
+        GameMode.META -> if (medal == Medal.NONE) "Sin medalla" else medal.label
+        GameMode.INFINITE -> "Récord: ${record?.bestScore ?: 0}"
     }
     val description = "Mapa ${spec.number}, ${spec.name}, ${spec.edgeLabel()}, dificultad ${spec.difficulty} de 5, $status"
+    val shape = RoundedCornerShape(14.dp)
+    val borderModifier = if (selected) {
+        Modifier.border(2.dp, palette.food, shape)
+    } else {
+        Modifier.border(1.dp, palette.wallEdge.copy(alpha = 0.45f), shape)
+    }
+
     Column(
         modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (selected) palette.food else palette.panel)
+            .clip(shape)
+            .then(borderModifier)
+            .background(if (selected) palette.panel else palette.panel.copy(alpha = 0.7f))
             .clickable(role = Role.RadioButton, onClick = onClick)
             .semantics {
                 contentDescription = description
                 this.selected = selected
             }
-            .padding(6.dp),
+            .padding(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        LevelThumbnail(spec, palette, Modifier.fillMaxWidth().aspectRatio(spec.cols.toFloat() / spec.rows.toFloat()))
-        Spacer(Modifier.height(4.dp))
-        CardText("${spec.number.toString().padStart(2, '0')} ${spec.name}", fg, 12, bold = true)
-        CardText("★".repeat(spec.difficulty) + "☆".repeat(5 - spec.difficulty), dim, 11)
-        CardText(
-            when (mode) {
-                GameMode.META -> status + (record?.bestTimeMs?.let { " · ${formatTime(it)}" } ?: "")
-                GameMode.INFINITE -> status
-            },
-            dim, 11
-        )
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(spec.cols.toFloat() / spec.rows.toFloat())
+                .clip(RoundedCornerShape(8.dp))
+        ) {
+            LevelThumbnail(spec, palette, Modifier.fillMaxSize())
+            if (selected) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(palette.food)
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    CardText("ELEGIDO", palette.background, 12, bold = true)
+                }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CardText("${spec.number.toString().padStart(2, '0')}. ${spec.name}", palette.text, 13, bold = true)
+            CardText("★".repeat(spec.difficulty), palette.food, 12)
+        }
+        Spacer(Modifier.height(2.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val statusColor = if (medal == Medal.GOLD) palette.food else palette.textDim
+            CardText(
+                when (mode) {
+                    GameMode.META -> status + (record?.bestTimeMs?.let { " · ${formatTime(it)}" } ?: "")
+                    GameMode.INFINITE -> status
+                },
+                statusColor,
+                12
+            )
+        }
     }
 }
 

@@ -113,7 +113,16 @@ class WifiLanMeshBridge(
                 onState("Teléfono cercano encontrado por Wi-Fi local")
             },
             onPayload = { peer, payload ->
-                peers[peer.id]?.lastSeen = System.currentTimeMillis()
+                val info = peers[peer.id]
+                if (info == null) {
+                    peers[peer.id] = PeerLanInfo(peer, System.currentTimeMillis())
+                    actualizarDispositivos()
+                    val flow = flows.getOrPut(peer.id) { MutableSharedFlow(extraBufferCapacity = 128) }
+                    val connection = LanPeerConnection(peer, flow, this)
+                    router.registrarPeer(connection)
+                } else {
+                    info.lastSeen = System.currentTimeMillis()
+                }
                 try {
                     val packet = json.decodeFromString<PaqueteMesh>(payload.toString(Charsets.UTF_8))
                     flows.getOrPut(peer.id) { MutableSharedFlow(extraBufferCapacity = 128) }.tryEmit(packet)

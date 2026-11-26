@@ -166,7 +166,8 @@ fun AreteNavHost(contenedor: ContenedorApp) {
                                 servicioPases = contenedor.servicioPases,
                                 repositorioLibreria = contenedor.libreria,
                                 petRepository = contenedor.petRepository,
-                                context = contextoApp
+                                context = contextoApp,
+                                gestorAutoPausa = contenedor.gestorAutoPausaUbicacion
                             )
                         }
                     }

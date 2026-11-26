@@ -45,6 +45,9 @@ object ProtocoloCanalesMesh {
     /** Miau Snake · duelo cercano. Plano de control del juego: nunca es un chat. */
     const val CANAL_MIAUSNAKE_MATCH = "miausnake-match"
 
+    /** Canal técnico de señales de llamadas y alertas: nunca es un chat. */
+    const val CANAL_SENALES_MESH = "senales-mesh"
+
     /**
      * Prefijo de los canales de sincronización de comunidades P2P (community:sync:<communityIdHex>).
      * Son canales dinámicos — no se pueden añadir a un Set fijo.
@@ -60,7 +63,8 @@ object ProtocoloCanalesMesh {
         CANAL_CARTAS_MESH,
         CANAL_PASE_DESCUBRIMIENTO,
         CANAL_IDENT_SYNC,
-        CANAL_MIAUSNAKE_MATCH
+        CANAL_MIAUSNAKE_MATCH,
+        CANAL_SENALES_MESH
     )
 
     /**

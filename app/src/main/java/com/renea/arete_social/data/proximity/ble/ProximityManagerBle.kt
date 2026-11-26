@@ -55,6 +55,8 @@ val ANTIRED_NOMBRE_SERVICE_UUID: UUID = UUID.fromString("0000FED1-0000-1000-8000
 val ANTIRED_NOMBRE_PARCEL_UUID = ParcelUuid(ANTIRED_NOMBRE_SERVICE_UUID)
 
 private const val VENTANA_EXPIRACION_BLE_MS  = 45_000L
+// SEC-04: Límite máximo de dispositivos retenidos en memoria para evitar saturación/DoS en zonas densas
+private const val MAX_DISPOSITIVOS_BLE        = 200
 private const val TX_POWER_DEFAULT           = -59.0   // Potencia de transmisión promedio medida a 1m
 private const val EXPONENTE_PROPAGACION      = 2.0     // Exponente de pérdidas en espacio libre
 
@@ -601,6 +603,7 @@ class ProximityManagerBle(
                 // Guardar siempre indexado por MAC física para evitar duplicados entre paquetes principales y scan response
                 val esNuevo = !dispositivosDescubiertos.containsKey(deviceAddress)
                 dispositivosDescubiertos[deviceAddress] = dispositivo
+                result.device?.let { dispositivosBt[deviceAddress] = it }
                 val huboExpirados = limpiarDispositivosExpirados()
                 val ahoraMsEmision = System.currentTimeMillis()
                 if (esNuevo || huboExpirados || ahoraMsEmision - ultimaEmisionScanMs >= 400L) {
@@ -787,6 +790,22 @@ class ProximityManagerBle(
         val ahora = System.currentTimeMillis()
         val tamInicial = dispositivosDescubiertos.size
         dispositivosDescubiertos.entries.removeIf { ahora - it.value.ultimaConexion > VENTANA_EXPIRACION_BLE_MS }
+
+        // SEC-04: Cap máximo para prevenir acumulación desmedida de memoria en zonas con alta densidad BLE
+        if (dispositivosDescubiertos.size > MAX_DISPOSITIVOS_BLE) {
+            val exceso = dispositivosDescubiertos.size - MAX_DISPOSITIVOS_BLE
+            val masAntiguos = dispositivosDescubiertos.entries
+                .sortedBy { it.value.ultimaConexion }
+                .take(exceso)
+            for (entrada in masAntiguos) {
+                dispositivosDescubiertos.remove(entrada.key)
+                dispositivosBt.remove(entrada.key)
+            }
+        }
+
+        // Sincronizar dispositivosBt con las claves vigentes
+        dispositivosBt.keys.retainAll(dispositivosDescubiertos.keys)
+
         return dispositivosDescubiertos.size != tamInicial
     }
 
@@ -802,6 +821,8 @@ class ProximityManagerBle(
     override fun detener() {
         detenerPublicidad()
         dispositivosDescubiertos.clear()
+        dispositivosBt.clear()
+        estadosLocalesPorUsuario.clear()
         emisorDescubrimiento?.trySend(emptyList())
         Log.d(TAG, "ProximityManagerBle detenido")
     }

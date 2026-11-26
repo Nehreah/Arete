@@ -2,6 +2,8 @@ package com.renea.arete_social.data.mesh.sync
 
 import android.annotation.SuppressLint
 import android.util.Base64
+import android.util.Log
+import kotlin.time.Duration.Companion.milliseconds
 import com.renea.arete_social.data.community.CommunityAuthority
 import com.renea.arete_social.data.community.CommunityLedger
 import com.renea.arete_social.data.local.room.AppLocalDatabase
@@ -24,6 +26,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -54,6 +57,9 @@ class CommunityMeshSyncManager(
     private val _eventosSincronizacion = MutableSharedFlow<SyncEvent>(replay = 1, extraBufferCapacity = 64)
     val eventosSincronizacion: SharedFlow<SyncEvent> = _eventosSincronizacion.asSharedFlow()
 
+    // G-01: Cola de operaciones pendientes cuando se detecta un salto de secuencia (Gap Repair)
+    private val colaPendientePorComunidad = java.util.concurrent.ConcurrentHashMap<String, MutableList<String>>()
+
     sealed class SyncEvent {
         data class ResumenEnviado(val communityIdHex: String, val ownerHeadSeq: Long) : SyncEvent()
         data class OperacionesRecibidas(val communityIdHex: String, val cantidad: Int) : SyncEvent()
@@ -77,6 +83,7 @@ class CommunityMeshSyncManager(
         const val PREFIX_POSTS_SYNC = "COMM_SYNC_POSTS:"
         const val PREFIX_POST_LIKE = "COMM_SYNC_LIKE:"
         private const val CHUNK_SIZE_OPERACIONES = 5
+        private val ID_SAFE_REGEX = Regex("^[a-zA-Z0-9_\\-]{2,128}$")
     }
 
     /**
@@ -188,9 +195,16 @@ class CommunityMeshSyncManager(
             if (file.exists()) {
                 val bytes = runCatching { file.readBytes() }.getOrNull()
                 if (bytes != null && bytes.isNotEmpty()) {
-                    val mime = if (uri.endsWith(".png", ignoreCase = true)) "image/png" else "image/jpeg"
-                    val b64 = "data:$mime;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
-                    return pub.copy(imagenUri = b64)
+                    // C-03: Si la imagen es grande, generar miniatura <= 4 KB para no exceder MAX_CONTENIDO_MESH_CHARS
+                    val payloadBytes = if (bytes.size > 3_500) {
+                        AlmacenMediaPerfil.generarMiniaturaBytes(bytes, maxAncho = 160, maxAlto = 160, calidad = 60)
+                    } else {
+                        bytes
+                    }
+                    if (payloadBytes.size <= 6_000) {
+                        val b64 = "data:image/jpeg;base64," + Base64.encodeToString(payloadBytes, Base64.NO_WRAP)
+                        return pub.copy(imagenUri = b64)
+                    }
                 }
             }
         }
@@ -241,20 +255,25 @@ class CommunityMeshSyncManager(
             runCatching {
                 val publicaciones = GestorMuroComunidades.obtenerPublicaciones(communityIdHex)
                 if (publicaciones.isEmpty()) return@launch
-                val pubsParaEnviar = publicaciones.map { prepararPublicacionParaEnvio(it) }
-                val jsonPubs = json.encodeToString(ListSerializer(PublicacionMuro.serializer()), pubsParaEnviar)
-                val paquete = PaqueteMesh(
-                    id = UUID.randomUUID().toString(),
-                    chatId = "$CHAT_PREFIX$communityIdHex",
-                    remitenteId = remitenteId,
-                    destinatarioId = destinatarioId,
-                    contenido = "$PREFIX_POSTS_SYNC$communityIdHex|$jsonPubs"
-                )
-                if (destinatarioId != null) {
-                    val enviado = messageRouter.enviarADestino(destinatarioId, paquete)
-                    if (!enviado) messageRouter.reenviar(paquete)
-                } else {
-                    messageRouter.reenviar(paquete)
+                // C-03: Sincronizar en lotes pequeños (<= 2 publicaciones) para respetar MAX_CONTENIDO_MESH_CHARS
+                val lotes = publicaciones.chunked(2)
+                for (lote in lotes) {
+                    val pubsParaEnviar = lote.map { prepararPublicacionParaEnvio(it) }
+                    val jsonPubs = json.encodeToString(ListSerializer(PublicacionMuro.serializer()), pubsParaEnviar)
+                    val paquete = PaqueteMesh(
+                        id = UUID.randomUUID().toString(),
+                        chatId = "$CHAT_PREFIX$communityIdHex",
+                        remitenteId = remitenteId,
+                        destinatarioId = destinatarioId,
+                        contenido = "$PREFIX_POSTS_SYNC$communityIdHex|$jsonPubs"
+                    )
+                    if (destinatarioId != null) {
+                        val enviado = messageRouter.enviarADestino(destinatarioId, paquete)
+                        if (!enviado) messageRouter.reenviar(paquete)
+                    } else {
+                        messageRouter.reenviar(paquete)
+                    }
+                    delay(60.milliseconds)
                 }
             }
         }
@@ -449,36 +468,57 @@ class CommunityMeshSyncManager(
                         val payload = paquete.contenido.removePrefix(PREFIX_MEMBER_JOIN)
                         val parts = payload.split("|")
                         if (parts.size >= 4) {
-                            val cIdHex = parts[0]
-                            val memberIk = parts[1]
-                            val role = parts[2]
-                            val status = parts[3]
-                            val nombre = parts.getOrNull(4)?.takeIf { it.isNotBlank() }
+                            val cIdHex = parts[0].trim()
+                            val memberIk = parts[1].trim()
+                            val proposedRole = parts[2].trim().uppercase()
+                            val status = parts[3].trim().uppercase()
+                            val rawNombre = parts.getOrNull(4)?.takeIf { it.isNotBlank() }?.trim()
 
-                            database.communityDao().upsertMember(
-                                CommunityMemberEntity(
-                                    communityIdHex = cIdHex,
-                                    authorIkHex = memberIk,
-                                    role = role,
-                                    status = status,
-                                    joinedAtOwnerSeq = 0L
-                                )
-                            )
-                            if (nombre != null) {
-                                runCatching {
-                                    database.peerProfileDao().insertOrUpdate(
-                                        PeerProfileEntity(
-                                            usuarioId = memberIk,
-                                            nombre = nombre,
-                                            ultimaVezVisto = System.currentTimeMillis()
+                            // Validación de formato estricta para evitar inyección y datos corruptos
+                            if (ID_SAFE_REGEX.matches(cIdHex) && ID_SAFE_REGEX.matches(memberIk)) {
+                                val comunidad = database.communityDao().getCommunity(cIdHex)
+                                if (comunidad != null) {
+                                    val miembroActual = database.communityDao().getMember(cIdHex, memberIk)
+                                    // Blindaje: Nunca elevar privilegios a OWNER o ADMIN mediante anuncios gossip de red.
+                                    // Solo el ledger criptográfico con operaciones firmadas puede nombrar OWNER/ADMIN.
+                                    val safeRole = if (comunidad.ownerIkHex.equals(memberIk, ignoreCase = true)) {
+                                        "OWNER"
+                                    } else if (miembroActual != null && miembroActual.role in listOf("OWNER", "ADMIN")) {
+                                        miembroActual.role
+                                    } else {
+                                        // Si el paquete reclama ser OWNER/ADMIN pero no es el dueño original, degradar a MEMBER
+                                        if (proposedRole in listOf("OWNER", "ADMIN")) "MEMBER" else proposedRole
+                                    }
+
+                                    val safeStatus = if (status in listOf("ACTIVE", "INACTIVE", "REQUESTED", "BANNED")) status else "ACTIVE"
+
+                                    database.communityDao().upsertMember(
+                                        CommunityMemberEntity(
+                                            communityIdHex = cIdHex,
+                                            authorIkHex = memberIk,
+                                            role = safeRole,
+                                            status = safeStatus,
+                                            joinedAtOwnerSeq = miembroActual?.joinedAtOwnerSeq ?: 0L
                                         )
                                     )
+                                    if (rawNombre != null) {
+                                        val cleanNombre = rawNombre.take(64)
+                                        runCatching {
+                                            database.peerProfileDao().insertOrUpdate(
+                                                PeerProfileEntity(
+                                                    usuarioId = memberIk,
+                                                    nombre = cleanNombre,
+                                                    ultimaVezVisto = System.currentTimeMillis()
+                                                )
+                                            )
+                                        }
+                                    }
+                                    _eventosSincronizacion.emit(SyncEvent.MiembrosActualizados(cIdHex))
+
+                                    // Responder con la lista completa de miembros conocidos para sincronizar bidireccionalmente
+                                    emitirTodosLosMiembros(cIdHex, destinatarioId = paquete.remitenteId)
                                 }
                             }
-                            _eventosSincronizacion.emit(SyncEvent.MiembrosActualizados(cIdHex))
-
-                            // Responder con la lista completa de miembros conocidos para sincronizar bidireccionalmente
-                            emitirTodosLosMiembros(cIdHex, destinatarioId = paquete.remitenteId)
                         }
                         true
                     }
@@ -487,10 +527,22 @@ class CommunityMeshSyncManager(
                         val payload = paquete.contenido.removePrefix(PREFIX_MEMBER_LEAVE)
                         val parts = payload.split("|")
                         if (parts.size >= 2) {
-                            val cIdHex = parts[0]
-                            val memberIk = parts[1]
-                            database.communityDao().updateMemberStatus(cIdHex, memberIk, "INACTIVE")
-                            _eventosSincronizacion.emit(SyncEvent.MiembrosActualizados(cIdHex))
+                            val cIdHex = parts[0].trim()
+                            val memberIk = parts[1].trim()
+                            if (ID_SAFE_REGEX.matches(cIdHex) && ID_SAFE_REGEX.matches(memberIk)) {
+                                val comunidad = database.communityDao().getCommunity(cIdHex)
+                                val remitente = paquete.remitenteId
+                                val miembroRemitente = database.communityDao().getMember(cIdHex, remitente)
+                                val esAutoBaja = remitente.equals(memberIk, ignoreCase = true)
+                                val esAdmin = comunidad?.ownerIkHex.equals(remitente, ignoreCase = true) ||
+                                        (miembroRemitente != null && miembroRemitente.role in listOf("OWNER", "ADMIN"))
+                                if (esAutoBaja || esAdmin) {
+                                    database.communityDao().updateMemberStatus(cIdHex, memberIk, "INACTIVE")
+                                    _eventosSincronizacion.emit(SyncEvent.MiembrosActualizados(cIdHex))
+                                } else {
+                                    SyncLogger.w(TAG, "Rechazado MEMBER_LEAVE para $memberIk: remitente $remitente no autorizado")
+                                }
+                            }
                         }
                         true
                     }
@@ -499,23 +551,43 @@ class CommunityMeshSyncManager(
                         val payload = paquete.contenido.removePrefix(PREFIX_MEMBERS_SYNC)
                         val parts = payload.split("|")
                         if (parts.size >= 2) {
-                            val cIdHex = parts[0]
-                            val miembrosList = parts[1].split(";")
-                            for (m in miembrosList) {
-                                val fields = m.split(",")
-                                if (fields.size >= 3) {
-                                    database.communityDao().upsertMember(
-                                        CommunityMemberEntity(
-                                            communityIdHex = cIdHex,
-                                            authorIkHex = fields[0],
-                                            role = fields[1],
-                                            status = fields[2],
-                                            joinedAtOwnerSeq = 0L
-                                        )
-                                    )
+                            val cIdHex = parts[0].trim()
+                            if (ID_SAFE_REGEX.matches(cIdHex)) {
+                                val comunidad = database.communityDao().getCommunity(cIdHex)
+                                if (comunidad != null) {
+                                    val miembrosList = parts[1].split(";")
+                                    for (m in miembrosList) {
+                                        val fields = m.split(",")
+                                        if (fields.size >= 3) {
+                                            val mIk = fields[0].trim()
+                                            val proposedRole = fields[1].trim().uppercase()
+                                            val status = fields[2].trim().uppercase()
+                                            if (ID_SAFE_REGEX.matches(mIk)) {
+                                                val miembroActual = database.communityDao().getMember(cIdHex, mIk)
+                                                val safeRole = if (comunidad.ownerIkHex.equals(mIk, ignoreCase = true)) {
+                                                    "OWNER"
+                                                } else if (miembroActual != null && miembroActual.role in listOf("OWNER", "ADMIN")) {
+                                                    miembroActual.role
+                                                } else {
+                                                    if (proposedRole in listOf("OWNER", "ADMIN")) "MEMBER" else proposedRole
+                                                }
+                                                val safeStatus = if (status in listOf("ACTIVE", "INACTIVE", "REQUESTED", "BANNED")) status else "ACTIVE"
+
+                                                database.communityDao().upsertMember(
+                                                    CommunityMemberEntity(
+                                                        communityIdHex = cIdHex,
+                                                        authorIkHex = mIk,
+                                                        role = safeRole,
+                                                        status = safeStatus,
+                                                        joinedAtOwnerSeq = miembroActual?.joinedAtOwnerSeq ?: 0L
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                    _eventosSincronizacion.emit(SyncEvent.MiembrosActualizados(cIdHex))
                                 }
                             }
-                            _eventosSincronizacion.emit(SyncEvent.MiembrosActualizados(cIdHex))
                         }
                         true
                     }
@@ -565,7 +637,7 @@ class CommunityMeshSyncManager(
                             val cIdHex = parts[0]
                             val pubId = parts[1]
                             val uId = parts[2]
-                            GestorMuroComunidades.toggleLike(cIdHex, pubId, uId)
+                            GestorMuroComunidades.registrarLikeRemoto(cIdHex, pubId, uId)
                             _eventosSincronizacion.emit(SyncEvent.PublicacionesActualizadas(cIdHex))
                         }
                         true
@@ -615,7 +687,8 @@ class CommunityMeshSyncManager(
 
     private suspend fun procesarOperacionEntrante(
         channelCommunityIdHex: String,
-        opHex: String
+        opHex: String,
+        drenarPendientes: Boolean = true
     ): Boolean {
         return runCatching {
             val opBytes = hexToBytes(opHex)
@@ -713,9 +786,24 @@ class CommunityMeshSyncManager(
                         )
                     }
                 }
+                if (drenarPendientes) {
+                    drenarColaPendiente(targetCommunityIdHex)
+                }
                 true
             }
         }.getOrDefault(false)
+    }
+
+    private suspend fun drenarColaPendiente(communityIdHex: String) {
+        val pendientes = colaPendientePorComunidad[communityIdHex] ?: return
+        if (pendientes.isEmpty()) return
+        val snapshot = synchronized(pendientes) { pendientes.toList() }
+        for (opHex in snapshot) {
+            val procesada = procesarOperacionEntrante(communityIdHex, opHex, drenarPendientes = false)
+            if (procesada) {
+                synchronized(pendientes) { pendientes.remove(opHex) }
+            }
+        }
     }
 
     private fun entityToEnvelope(entity: LedgerOperationEntity): OperationEnvelope {

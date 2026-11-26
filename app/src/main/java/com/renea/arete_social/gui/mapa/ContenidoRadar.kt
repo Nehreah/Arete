@@ -169,7 +169,7 @@ fun ContenidoRadar(
     val fotoPerfilActual = (estadoPerfil as? PerfilUiState.Listo)?.usuario?.foto
     val nombrePerfilActual = (estadoPerfil as? PerfilUiState.Listo)?.usuario?.nombre ?: ""
 
-    val posicionInicial = estado.ubicacionPropia?.let {
+    val posicionInicial = estado.ubicacionPropia?.takeIf { it.latitud != 0.0 || it.longitud != 0.0 }?.let {
         PuntoMapa(it.latitud, it.longitud)
     } ?: PuntoMapa(0.0, 0.0)
 
@@ -226,8 +226,9 @@ fun ContenidoRadar(
     }
 
     LaunchedEffect(estado.ubicacionPropia) {
-        estado.ubicacionPropia?.let {
-            val nuevaPosicion = PuntoMapa(it.latitud, it.longitud)
+        val loc = estado.ubicacionPropia
+        if (loc != null && (loc.latitud != 0.0 || loc.longitud != 0.0)) {
+            val nuevaPosicion = PuntoMapa(loc.latitud, loc.longitud)
             if (!posicionInicialFijada) {
                 posicionInicialFijada = true
                 estadoCamara.mover(nuevaPosicion, EstadoCamaraOsm.ZOOM_POR_DEFECTO)
@@ -323,7 +324,9 @@ fun ContenidoRadar(
     }
 
     val ubicacionPropiaMapa = remember(estado.ubicacionPropia) {
-        estado.ubicacionPropia?.let { PuntoMapa(it.latitud, it.longitud, it.precisionMetros) }
+        estado.ubicacionPropia?.takeIf { it.latitud != 0.0 || it.longitud != 0.0 }?.let {
+            PuntoMapa(it.latitud, it.longitud, it.precisionMetros)
+        }
     }
 
     // ─── Sala general en el mapa ──────────────────────────────────────────────

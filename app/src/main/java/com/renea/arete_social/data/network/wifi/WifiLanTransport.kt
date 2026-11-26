@@ -9,6 +9,8 @@ import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.DataInputStream
@@ -49,9 +51,10 @@ class WifiLanTransport(
     private val running = AtomicBoolean(false)
     private val peers = ConcurrentHashMap<String, WifiLanPeer>()
     private val idPorServicio = ConcurrentHashMap<String, String>()
-    private val watchdog = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r ->
-        Thread(r, "antired-wifi-watchdog").apply { isDaemon = true }
-    }
+    @Volatile private var watchdog: java.util.concurrent.ScheduledExecutorService? = null
+
+    private val colaResolucionNsd = java.util.concurrent.ConcurrentLinkedQueue<NsdServiceInfo>()
+    private val resolviendoNsd = AtomicBoolean(false)
 
     private fun esDireccionLocal(a: InetAddress): Boolean {
         // H-08: Rechazar loopback para que otras aplicaciones locales del mismo terminal no inyecten frames
@@ -64,9 +67,16 @@ class WifiLanTransport(
     @Volatile private var server: ServerSocket? = null
     @Volatile private var registrationListener: NsdManager.RegistrationListener? = null
     @Volatile private var discoveryListener: NsdManager.DiscoveryListener? = null
-    private val portReadyLatch = java.util.concurrent.CountDownLatch(1)
-    private val peerExecutor: java.util.concurrent.ThreadPoolExecutor =
-        java.util.concurrent.ThreadPoolExecutor(
+    @Volatile private var portReadyLatch = java.util.concurrent.CountDownLatch(1)
+    @Volatile private var peerExecutor: java.util.concurrent.ThreadPoolExecutor? = null
+
+    fun start() {
+        if (!running.compareAndSet(false, true)) return
+        portReadyLatch = java.util.concurrent.CountDownLatch(1)
+        watchdog = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r ->
+            Thread(r, "antired-wifi-watchdog").apply { isDaemon = true }
+        }
+        peerExecutor = java.util.concurrent.ThreadPoolExecutor(
             4,
             16,
             60L,
@@ -75,9 +85,6 @@ class WifiLanTransport(
             { runnable -> Thread(runnable, "antired-wifi-peer").apply { isDaemon = true } },
             java.util.concurrent.ThreadPoolExecutor.AbortPolicy()
         )
-
-    fun start() {
-        if (!running.compareAndSet(false, true)) return
         runCatching {
             multicastLock = wifiManager?.createMulticastLock("antired_multicast_lock")?.apply {
                 setReferenceCounted(false)
@@ -110,7 +117,12 @@ class WifiLanTransport(
                 val socket = socketServer.accept()
                 socket.soTimeout = IO_TIMEOUT_MS
                 try {
-                    peerExecutor.execute { handle(socket) }
+                    val executor = peerExecutor
+                    if (executor != null && !executor.isShutdown) {
+                        executor.execute { handle(socket) }
+                    } else {
+                        runCatching { socket.close() }
+                    }
                 } catch (e: java.util.concurrent.RejectedExecutionException) {
                     Log.w(TAG, "Conexión TCP rechazada por saturación del servidor LAN: ${socket.inetAddress}")
                     runCatching { socket.close() }
@@ -156,28 +168,20 @@ class WifiLanTransport(
             override fun onDiscoveryStarted(serviceType: String) = onState("Buscando pares en la Wi-Fi local")
             override fun onServiceFound(serviceInfo: NsdServiceInfo) {
                 if (!running.get() || serviceInfo.serviceType.trimEnd('.') != SERVICE_TYPE.trimEnd('.')) return
-                try {
-                    nsd.resolveService(serviceInfo, object : NsdManager.ResolveListener {
-                        override fun onResolveFailed(info: NsdServiceInfo, errorCode: Int) {
-                            Log.d(TAG, "NSD resolve falló: $errorCode")
-                        }
-                        override fun onServiceResolved(info: NsdServiceInfo) {
-                            val id = info.attributes["peer"]?.toString(Charsets.UTF_8) ?: info.serviceName
-                            val host = info.host ?: return
-                            if (id == peerId || info.port !in 1..65535) return
-                            idPorServicio[info.serviceName] = id
-                            val peer = WifiLanPeer(id, host, info.port)
-                            peers[id] = peer
-                            onPeerFound(peer)
-                        }
-                    })
-                } catch (e: Exception) { Log.d(TAG, "No se pudo resolver NSD: ${e.message}") }
+                colaResolucionNsd.add(serviceInfo)
+                procesarColaResolucionNsd()
             }
             override fun onServiceLost(serviceInfo: NsdServiceInfo) {
-                val id = serviceInfo.attributes?.get("peer")?.toString(Charsets.UTF_8)
-                    ?: idPorServicio.remove(serviceInfo.serviceName)
-                    ?: serviceInfo.serviceName
+                val sName = serviceInfo.serviceName
+                val id = idPorServicio.remove(sName)
+                    ?: idPorServicio.entries.firstOrNull { it.key.trimEnd('.').equals(sName.trimEnd('.'), ignoreCase = true) }?.let {
+                        idPorServicio.remove(it.key)
+                        it.value
+                    }
+                    ?: peers.entries.firstOrNull { it.key == sName || it.value.id == sName }?.key
+                    ?: sName
                 peers.remove(id)
+                cerrarSocket(id)
                 onPeerLost?.invoke(id)
             }
             override fun onDiscoveryStopped(serviceType: String) = Unit
@@ -194,6 +198,41 @@ class WifiLanTransport(
         catch (e: Exception) { onState("No se pudo iniciar NSD: ${e.localizedMessage}") }
     }
 
+    private fun procesarColaResolucionNsd() {
+        if (!running.get()) return
+        if (!resolviendoNsd.compareAndSet(false, true)) return
+        val siguiente = colaResolucionNsd.poll()
+        if (siguiente == null) {
+            resolviendoNsd.set(false)
+            return
+        }
+        try {
+            nsd.resolveService(siguiente, object : NsdManager.ResolveListener {
+                override fun onResolveFailed(info: NsdServiceInfo, errorCode: Int) {
+                    Log.d(TAG, "NSD resolve falló: $errorCode")
+                    resolviendoNsd.set(false)
+                    procesarColaResolucionNsd()
+                }
+                override fun onServiceResolved(info: NsdServiceInfo) {
+                    val id = info.attributes["peer"]?.toString(Charsets.UTF_8) ?: info.serviceName
+                    val host = info.host
+                    if (host != null && id != peerId && info.port in 1..65535) {
+                        idPorServicio[info.serviceName] = id
+                        val peer = WifiLanPeer(id, host, info.port)
+                        peers[id] = peer
+                        onPeerFound(peer)
+                    }
+                    resolviendoNsd.set(false)
+                    procesarColaResolucionNsd()
+                }
+            })
+        } catch (e: Exception) {
+            Log.d(TAG, "No se pudo resolver NSD: ${e.message}")
+            resolviendoNsd.set(false)
+            procesarColaResolucionNsd()
+        }
+    }
+
     private fun handle(socket: Socket) {
         socket.use { s ->
             // M-01: Rechazar conexiones desde direcciones no locales (WAN/datos móviles)
@@ -202,89 +241,141 @@ class WifiLanTransport(
                 return
             }
             // M-01: Watchdog de plazo total por conexión (15s) para evitar retención de hilos por Slowloris
-            val watchdogKill = watchdog.schedule({ runCatching { s.close() } }, 15, java.util.concurrent.TimeUnit.SECONDS)
+            val watchdogKill = watchdog?.schedule({ runCatching { s.close() } }, 15, java.util.concurrent.TimeUnit.SECONDS)
             try {
                 s.soTimeout = IO_TIMEOUT_MS
                 val input = DataInputStream(BufferedInputStream(s.getInputStream()))
                 val output = DataOutputStream(BufferedOutputStream(s.getOutputStream()))
-                val remoteId = input.readUTF()
-                if (remoteId == "__PING__") {
+                while (running.get() && !s.isClosed) {
+                    val remoteId = try {
+                        input.readUTF()
+                    } catch (e: java.io.EOFException) {
+                        break
+                    }
+                    if (remoteId == "__PING__") {
+                        output.writeBoolean(true)
+                        output.flush()
+                        break
+                    }
+                    if (remoteId.isBlank() || remoteId.length > 132 || remoteId == peerId) break
+
+                    val timestamp = input.readLong()
+                    val pubKey = input.readUTF()
+                    if (pubKey.length > 1024) break
+                    val sig = input.readUTF()
+                    if (sig.length > 512) break
+                    val remoteServerPort = input.readInt()
+
+                    val ahora = System.currentTimeMillis()
+                    if (Math.abs(ahora - timestamp) > 60_000L) {
+                        Log.w(TAG, "Rechazado frame LAN de $remoteId: timestamp expirado o desfasado")
+                        break
+                    }
+
+                    // M-01: Handshake fail-closed. Exigir firma y clave pública obligatorias si verificarFirma está configurado
+                    if (verificarFirma != null) {
+                        if (pubKey.isBlank() || sig.isBlank()) {
+                            Log.w(TAG, "Rechazado frame LAN de $remoteId: handshake sin firma o clave")
+                            break
+                        }
+                        val datos = "$remoteId|$timestamp".toByteArray(Charsets.UTF_8)
+                        if (!verificarFirma.invoke(datos, sig, pubKey)) {
+                            Log.w(TAG, "Rechazado frame LAN de $remoteId: firma criptográfica inválida")
+                            break
+                        }
+                    }
+
+                    // S-02: TOFU — verificar que la clave pública del peer no difiere de la pinada.
+                    if (validarClavePeer != null && pubKey.isNotBlank()) {
+                        val valido = validarClavePeer.invoke(remoteId, pubKey)
+                        if (valido == false) {
+                            Log.w(TAG, "Rechazado frame LAN de $remoteId: clave pública no coincide con pin TOFU guardado")
+                            break
+                        }
+                    }
+
+                    val length = input.readInt()
+                    if (length !in 1..MAX_FRAME_BYTES) break
+                    val payload = ByteArray(length)
+                    input.readFully(payload)
+                    val peerPort = if (remoteServerPort in 1..65535) remoteServerPort else s.port
+                    val peer = WifiLanPeer(remoteId, s.inetAddress, peerPort)
+                    if (remoteServerPort in 1..65535) {
+                        if (peers.putIfAbsent(remoteId, peer) == null) {
+                            onPeerFound(peer)
+                        }
+                    }
+                    onPayload(peer, payload)
                     output.writeBoolean(true)
                     output.flush()
-                    return
                 }
-                if (remoteId.isBlank() || remoteId == peerId) return
-
-                val timestamp = input.readLong()
-                val pubKey = input.readUTF()
-                val sig = input.readUTF()
-
-                val ahora = System.currentTimeMillis()
-                if (Math.abs(ahora - timestamp) > 60_000L) {
-                    Log.w(TAG, "Rechazado frame LAN de $remoteId: timestamp expirado o desfasado")
-                    return
-                }
-
-                // M-01: Handshake fail-closed. Exigir firma y clave pública obligatorias si verificarFirma está configurado
-                if (verificarFirma != null) {
-                    if (pubKey.isBlank() || sig.isBlank()) {
-                        Log.w(TAG, "Rechazado frame LAN de $remoteId: handshake sin firma o clave")
-                        return
-                    }
-                    val datos = "$remoteId|$timestamp".toByteArray(Charsets.UTF_8)
-                    if (!verificarFirma.invoke(datos, sig, pubKey)) {
-                        Log.w(TAG, "Rechazado frame LAN de $remoteId: firma criptográfica inválida")
-                        return
-                    }
-                }
-
-                // S-02: TOFU — verificar que la clave pública del peer no difiere de la pinada.
-                // null = peer no pinado (aceptar provisionalmente), false = conflicto (rechazar).
-                if (validarClavePeer != null && pubKey.isNotBlank()) {
-                    val valido = validarClavePeer.invoke(remoteId, pubKey)
-                    if (valido == false) {
-                        Log.w(TAG, "Rechazado frame LAN de $remoteId: clave pública no coincide con pin TOFU guardado")
-                        return
-                    }
-                }
-
-                val length = input.readInt()
-                if (length !in 1..MAX_FRAME_BYTES) return
-                val payload = ByteArray(length)
-                input.readFully(payload)
-                val peer = WifiLanPeer(remoteId, s.inetAddress, s.port)
-                onPayload(peer, payload)
-                output.writeBoolean(true)
-                output.flush()
             } catch (e: Exception) { Log.d(TAG, "Frame LAN rechazado/cortado: ${e.message}") }
-            finally { watchdogKill.cancel(false) }
+            finally { watchdogKill?.cancel(false) }
         }
     }
 
+    private val socketsPersistentes = ConcurrentHashMap<String, Socket>()
+    private val socketLocks = ConcurrentHashMap<String, Mutex>()
+
     suspend fun send(peer: WifiLanPeer, payload: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
         if (payload.isEmpty() || payload.size > MAX_FRAME_BYTES) return@withContext Result.failure(IllegalArgumentException("El mensaje debe tener entre 1 y $MAX_FRAME_BYTES bytes"))
-        runCatching {
-            Socket().use { socket ->
-                socket.connect(InetSocketAddress(peer.host, peer.port), CONNECT_TIMEOUT_MS)
-                socket.soTimeout = IO_TIMEOUT_MS
-                val out = DataOutputStream(BufferedOutputStream(socket.getOutputStream()))
-                val input = DataInputStream(BufferedInputStream(socket.getInputStream()))
-
-                val timestamp = System.currentTimeMillis()
-                val pub = miClavePublica?.invoke() ?: ""
-                val datos = "$peerId|$timestamp".toByteArray(Charsets.UTF_8)
-                val sig = firmarHandshake?.invoke(datos) ?: ""
-
-                out.writeUTF(peerId)
-                out.writeLong(timestamp)
-                out.writeUTF(pub)
-                out.writeUTF(sig)
-                out.writeInt(payload.size)
-                out.write(payload)
-                out.flush()
-                check(input.readBoolean()) { "El par no confirmó recepción" }
+        val lock = socketLocks.computeIfAbsent(peer.id) { Mutex() }
+        lock.withLock {
+            runCatching {
+                val socket = obtenerOrearSocket(peer)
+                try {
+                    enviarFrame(socket, payload)
+                } catch (e: Exception) {
+                    // Si el socket persistente falló (por ejemplo, desconexión remota), descartar y reintentar con uno nuevo
+                    cerrarSocket(peer.id)
+                    val socketNuevo = obtenerOrearSocket(peer, forzarNuevo = true)
+                    enviarFrame(socketNuevo, payload)
+                }
             }
         }
+    }
+
+    private fun obtenerOrearSocket(peer: WifiLanPeer, forzarNuevo: Boolean = false): Socket {
+        if (!forzarNuevo) {
+            val existente = socketsPersistentes[peer.id]
+            if (existente != null && existente.isConnected && !existente.isClosed) {
+                return existente
+            }
+        }
+        cerrarSocket(peer.id)
+        val nuevo = Socket().apply {
+            connect(InetSocketAddress(peer.host, peer.port), CONNECT_TIMEOUT_MS)
+            soTimeout = IO_TIMEOUT_MS
+            keepAlive = true
+            tcpNoDelay = true
+        }
+        socketsPersistentes[peer.id] = nuevo
+        return nuevo
+    }
+
+    private fun enviarFrame(socket: Socket, payload: ByteArray) {
+        val out = DataOutputStream(BufferedOutputStream(socket.getOutputStream()))
+        val input = DataInputStream(BufferedInputStream(socket.getInputStream()))
+
+        val timestamp = System.currentTimeMillis()
+        val pub = miClavePublica?.invoke() ?: ""
+        val datos = "$peerId|$timestamp".toByteArray(Charsets.UTF_8)
+        val sig = firmarHandshake?.invoke(datos) ?: ""
+
+        val sPort = server?.localPort ?: 0
+        out.writeUTF(peerId)
+        out.writeLong(timestamp)
+        out.writeUTF(pub)
+        out.writeUTF(sig)
+        out.writeInt(sPort)
+        out.writeInt(payload.size)
+        out.write(payload)
+        out.flush()
+        check(input.readBoolean()) { "El par no confirmó recepción" }
+    }
+
+    private fun cerrarSocket(peerId: String) {
+        socketsPersistentes.remove(peerId)?.let { runCatching { it.close() } }
     }
 
     suspend fun ping(peer: WifiLanPeer): Boolean = withContext(Dispatchers.IO) {
@@ -306,8 +397,17 @@ class WifiLanTransport(
         runCatching { discoveryListener?.let { nsd.stopServiceDiscovery(it) } }
         runCatching { registrationListener?.let { nsd.unregisterService(it) } }
         runCatching { server?.close() }
-        runCatching { peerExecutor.shutdownNow() }
-        runCatching { watchdog.shutdownNow() }
+        runCatching {
+            socketsPersistentes.values.forEach { runCatching { it.close() } }
+            socketsPersistentes.clear()
+            socketLocks.clear()
+        }
+        runCatching { peerExecutor?.shutdownNow() }
+        runCatching { watchdog?.shutdownNow() }
+        peerExecutor = null
+        watchdog = null
+        colaResolucionNsd.clear()
+        resolviendoNsd.set(false)
         idPorServicio.clear()
         runCatching {
             if (multicastLock?.isHeld == true) {

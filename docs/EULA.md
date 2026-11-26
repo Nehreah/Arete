@@ -11,6 +11,8 @@
 
 **Aréte** es una aplicación libre y descentralizada de comunicación táctica y red social local para Android. Funciona directamente de persona a persona mediante las radios de tu teléfono (Bluetooth y Wi-Fi) **sin necesidad de internet ni servidores centrales**.
 
+Aréte es un proyecto **comunitario, emancipador y de Software Libre (*Free Software*)**, desarrollado inicialmente por un estudiante de Tecnología en Desarrollo de Software en colaboración con IA, y puesto **100% al servicio de la comunidad**. No persigue fines de lucro corporativo, no recolecta ni comercializa información personal, y prescinde por diseño de cualquier algoritmo de retención o manipulación.
+
 Para que esta red comunitaria siga siendo un espacio seguro, confiable y respetuoso para todos, el uso de la aplicación está condicionado a la aceptación plena y consciente de este Acuerdo de Licencia de Usuario Final (EULA), Términos de Servicio y Normas Comunitarias.
 
 ---
@@ -98,10 +100,10 @@ Aréte pone a tu disposición herramientas accesibles en todo momento:
 
 ---
 
-## 📜 10. Licencia de Software Libre y Descargo de Garantías
+## 📜 10. Licencia de Software Libre, Carácter Emancipador y Descargo de Garantías
 
-1. **Licencia GPLv3:** Aréte es Software 100% Libre distribuido bajo los términos de la **GNU General Public License v3.0**. Eres libre de auditar, modificar y compartir el código respetando los derechos de la comunidad de software libre.
-2. **Provisión "Tal Cual" (*As Is*):** El software se suministra de buena fe para beneficio social sin garantías explícitas o implícitas sobre continuidad del servicio de telecomunicaciones, alcance de radiofrecuencia o compatibilidad con todos los modelos de hardware. En la medida máxima permitida por la ley, los desarrolladores no asumen responsabilidad por controversias particulares entre usuarios o pérdidas derivadas del uso inadecuado.
+1. **Licencia GPLv3 y Carácter Colectivo:** Aréte es Software 100% Libre distribuido bajo los términos de la **GNU General Public License v3.0**. Eres libre de auditar, modificar y compartir el código respetando los derechos de la comunidad de software libre. Se concibe como una herramienta colectiva y emancipadora al servicio de la soberanía digital de los pueblos, sin algoritmos opacos y sin extracción comercial de datos.
+2. **Provisión "Tal Cual" (*As Is*):** El software se suministra de buena fe para beneficio social sin garantías explícitas o implícitas sobre continuidad del servicio de telecomunicaciones, alcance de radiofrecuencia o compatibilidad con todos los modelos de hardware. En la medida máxima permitida por la ley, los desarrolladores y colaboradores no asumen responsabilidad por controversias particulares entre usuarios o pérdidas derivadas del uso inadecuado.
 
 ---
 

@@ -25,6 +25,9 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "ProximityGPS"
 
+/** Radio canónico de alcance para personas y eventos cercanos en el radar (2 km). */
+const val RADIO_CERCANOS_METROS = 2000.0
+
 /**
  * Implementación de DetectorProximidad por GPS nativo de Android (100% software libre, sin Google Play Services).
  * Si no se han concedido los permisos de ubicación, no lanza excepción, sino que suspende limpiamente.
@@ -32,7 +35,7 @@ private const val TAG = "ProximityGPS"
 class ProximityManagerGps(
     private val context: Context,
     private val repositorioUsuarios: RepositorioUsuarios,
-    private val radioMetros: Double = 500.0,
+    private val radioMetros: Double = RADIO_CERCANOS_METROS,
     private val usuarioIdProveedor: (() -> String?)? = null
 ) : DetectorProximidad {
 

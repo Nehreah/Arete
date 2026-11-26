@@ -5,6 +5,18 @@ Todas las modificaciones notables a este proyecto se documentarán en este archi
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.1.0] - 2026-11-25
+
+### Añadido
+- Manifiesto de autoría y visión emancipadora comunitaria en `README.md`, `docs/index.html`, `docs/CONTRIBUTING.md`, `docs/EULA.md` y `docs/INDICE.md`.
+- Documento de especificación `docs/COMUNICACION_MESH.md` que detalla la red de malla híbrida (BLE, Wi-Fi LAN, pasarelas de enlace y mulas de datos).
+- Nueva compilación de instalación directa `docs/arete.apk` generada desde código fuente limpio.
+
+### Modificado
+- `README.md` e `index.html`: Inclusión de secciones de autoría (estudiante de Tecnología en Desarrollo de Software en colaboración con IA), proyecto colectivo de Software Libre al servicio de la comunidad sin algoritmos ni recolección de datos.
+- `EULA.md` y `eula.html`: Actualización de términos reafirmando la naturaleza de software libre emancipador y no comercial.
+- `GUIA_FUNCIONAL.md` y `ARQUITECTURA.md`: Ajustes de alcance de radar de cercanía y enrutamiento con amigos a distancia.
+
 ## [1.0.0] - 2026-11-20
 
 ### Añadido

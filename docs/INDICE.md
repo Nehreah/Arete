@@ -1,6 +1,10 @@
 # Índice General de la Documentación — Aréte
 
-Bienvenido al repositorio de documentación técnica y funcional de **Aréte**, la red social táctica, libre y descentralizada (100% Local-First / Mesh P2P).
+Bienvenido al repositorio de documentación técnica, funcional y comunitaria de **Aréte**, la red social táctica, libre y descentralizada (100% Local-First / Mesh P2P).
+
+> ✊ **Manifiesto y Autoría:**  
+> Aréte es desarrollada por un **único contribuyente**, **estudiante de Tecnología en Desarrollo de Software**, en colaboración con **Inteligencia Artificial**.  
+> Nace con el anhelo de ser un **proyecto colectivo, emancipador y de Software Libre (*Free Software*)**, una aplicación **100% al servicio de la comunidad** para comunicarse libremente sin que sus datos sean recolectados ni comercializados, y **sin la necesidad de ningún algoritmo** manipulador de la atención.
 
 ---
 
@@ -11,6 +15,7 @@ Los documentos fundamentales que describen la ingeniería, protocolos y superfic
 | Documento | Descripción |
 |---|---|
 | [**ARQUITECTURA.md**](ARQUITECTURA.md) | Arquitectura técnica 100% local, Clean Architecture, capas del sistema (Dominio puro, Datos y Presentación Compose), criptografía E2EE v4, protocolos BLE/GATT y Wi-Fi LAN. |
+| [**COMUNICACION_MESH.md**](COMUNICACION_MESH.md) | Guía integral de comunicaciones: Bluetooth Low Energy, Wi-Fi LAN, Wi-Fi Direct, Internet (Wi-Fi/Datos), nodos pasarela, mulas de datos, filtro de 2 km en radar y gacetas a distancia. |
 | [**seguridad/MODELO_DE_AMENAZAS.md**](seguridad/MODELO_DE_AMENAZAS.md) | Análisis de superficie de ataque, vectores de amenaza en redes ad-hoc, firmas ECDSA, mitigaciones TOFU, replay protection y privacidad en radar. |
 | [**POLITICA_PRIVACIDAD.md**](POLITICA_PRIVACIDAD.md) | Política de privacidad integral: cero servidores centrales, cero telemetría, almacenamiento estrictamente local, conforme a directrices de F-Droid y software libre. |
 | [**EULA.md**](EULA.md) | Términos de Servicio, Acuerdo de Licencia de Usuario Final (EULA) y Normas Comunitarias (+18, tolerancia cero CSAM/acoso, moderación humana y descargo de responsabilidad). |

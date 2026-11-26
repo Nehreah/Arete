@@ -118,3 +118,22 @@ El sobre binario viaja con campos con prefijo de longitud fija (Big-Endian):
    ```
 5. **Rotación Obligatoria:**
    Ante `EXPEL`, `LEAVE` o revocación con sospecha de compromiso, el emisor genera $K_{e+1}$ y emite `EpochKeyShare` únicamente a los miembros restantes.
+
+---
+
+## 6. Transporte Multi-Portadora y Nodos Pasarela (Gateway / Data Mule)
+
+1. **Agnosticismo del Transporte:**  
+   El `OperationEnvelope` y los paquetes `PaqueteMesh` viajan como cargas útiles binarias opacas firmadas. El intermediario nunca necesita conocer la capa física para retransmitir.
+2. **Portadoras Soportadas:**
+   - **Bluetooth Low Energy (BLE):** Enlace directo ad-hoc en proximidad inmediata (10 a 80 metros) con fragmentación `GattFramer`.
+   - **Wi-Fi LAN / Wi-Fi Direct:** Transporte TCP/HTTP de alta velocidad en subredes locales o grupos ad-hoc.
+   - **Internet (Wi-Fi / Datos Móviles):** Transporte a través de buzones relay ciegos y WebSockets.
+3. **Comportamiento Pasarela y Mula de Datos (*Store-and-Forward*):**
+   - Un nodo que disponga de conectividad a internet recibe paquetes emitidos vía BLE por nodos sin internet y los retransmite hacia el relay.
+   - A la inversa, descarga actualizaciones temáticas (gacetas, murales) y las difunde localmente por BLE hacia nodos desconectados.
+4. **Delimitación de Ámbitos:**
+   - **Hiperlocal (Radar):** Acotado a un radio geográfico estricto de $\le 2\text{ km}$.
+   - **Amistades:** Direccionado por clave pública de identidad (`IK`), sin limitación geográfica.
+   - **Comunidades y Gacetas:** Direccionado por `communityId` a escala distribuida global.
+

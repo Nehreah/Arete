@@ -226,7 +226,13 @@ private fun LectorObra(
     val contexto = LocalContext.current
     var confirmarBorrado by remember { mutableStateOf(false) }
     fun abrirExterno(url: String) {
-        runCatching { contexto.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        val trimmed = url.trim()
+        val uri = runCatching { Uri.parse(trimmed) }.getOrNull() ?: return
+        val scheme = uri.scheme?.lowercase()
+        // SEC-05: Validar que el scheme sea estrictamente web seguro (http o https) para evitar inyecciones
+        if (scheme == "http" || scheme == "https") {
+            runCatching { contexto.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        }
     }
 
     Dialog(onDismissRequest = onCerrar, properties = DialogProperties(usePlatformDefaultWidth = false)) {

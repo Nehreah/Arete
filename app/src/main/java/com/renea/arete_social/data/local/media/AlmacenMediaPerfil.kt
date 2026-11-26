@@ -92,14 +92,24 @@ object AlmacenMediaPerfil {
         )
     }
 
+    private val HASH_SAFE_REGEX = Regex("^[a-fA-F0-9]{8,128}$")
+    private val EXT_SAFE_REGEX = Regex("^[a-zA-Z0-9]{1,10}$")
+
     /**
      * Guarda directamente los bytes asociados a un hash recibido por la red (BLE o Wi-Fi).
      */
     fun guardarBytesConHash(bytes: ByteArray, hashSha256: String, esMiniatura: Boolean = false, extension: String = "jpg"): File {
         val dir = obtenerDirectorio()
+        val hashReal = calcularHashSha256(bytes)
+        val safeHash = if (HASH_SAFE_REGEX.matches(hashSha256) && hashReal.equals(hashSha256, ignoreCase = true)) {
+            hashSha256
+        } else {
+            hashReal
+        }
         val prefijo = if (esMiniatura) "thumb_" else "media_"
-        val extLimpia = if (extension.isBlank() || extension.contains("/")) "jpg" else extension.removePrefix(".")
-        val archivo = File(dir, "${prefijo}${hashSha256.take(12)}.$extLimpia")
+        val rawExt = extension.removePrefix(".").trim()
+        val extLimpia = if (EXT_SAFE_REGEX.matches(rawExt)) rawExt else "jpg"
+        val archivo = File(dir, "${prefijo}${safeHash.take(12)}.$extLimpia")
         escribirAtomicamente(archivo, bytes)
         return archivo
     }
@@ -109,8 +119,9 @@ object AlmacenMediaPerfil {
      */
     fun obtenerArchivoPorHash(hashSha256: String): File? {
         val dir = obtenerDirectorio()
-        val hashCorto = hashSha256.take(12)
-        return dir.listFiles { _, name -> name.contains(hashCorto) }?.firstOrNull()
+        val safeHash = hashSha256.filter { it.isLetterOrDigit() }.take(12)
+        if (safeHash.isBlank()) return null
+        return dir.listFiles { _, name -> name.contains(safeHash) }?.firstOrNull()
     }
 
     /**
@@ -189,7 +200,7 @@ object AlmacenMediaPerfil {
         }
     }
 
-    private fun generarMiniaturaBytes(
+    fun generarMiniaturaBytes(
         bytesOriginales: ByteArray,
         maxAncho: Int,
         maxAlto: Int,

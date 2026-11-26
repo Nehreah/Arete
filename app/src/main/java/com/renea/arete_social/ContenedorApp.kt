@@ -13,6 +13,7 @@ import com.renea.arete_social.data.network.wifi.WifiLanMeshBridge
 import com.renea.arete_social.data.proximity.ble.ProximityManagerBle
 import com.renea.arete_social.data.proximity.gps.ProximityManagerGps
 import com.renea.arete_social.data.proximity.hibrido.ProximityManagerHibrido
+import com.renea.arete_social.feature.ubicacion.GestorAutoPausaUbicacion
 import com.renea.arete_social.data.community.CommunityFileManager
 import com.renea.arete_social.data.community.CommunityJoinRequests
 import com.renea.arete_social.data.community.CommunityRepositoryLocal
@@ -242,7 +243,11 @@ class ContenedorApp(private val context: Context) {
         router = messageRouter,
         resolverPerfiles = resolverPerfiles,
         miIdProveedor = usuarioIdConFallback,
-        esAmigo = { id -> com.renea.arete_social.feature.auth.GestorAmistades.esAmigo(id) }
+        esAmigo = { id -> com.renea.arete_social.feature.auth.GestorAmistades.esAmigo(id) },
+        esPerfilPrivado = {
+            val miId = usuarioIdConFallback()
+            miId != null && cachePerfil.miSnapshot(miId)?.privado == true
+        }
     ).also { it.iniciar() }
 
     val gestorPerfilBle = com.renea.arete_social.data.mesh.GestorPerfilBle(
@@ -389,6 +394,24 @@ class ContenedorApp(private val context: Context) {
         validarClavePeer = null
     )
 
+    // ─── Internet Mesh: Puente sobre Wi-Fi y Datos Móviles (Amigos, Gacetas y Radar 2 km) ───
+    val internetMesh = com.renea.arete_social.data.network.internet.InternetMeshBridge(
+        context = context.applicationContext,
+        peerIdProvider = usuarioIdConFallback,
+        router = messageRouter,
+        esAmigo = { id -> com.renea.arete_social.feature.auth.GestorAmistades.esAmigo(id) },
+        onState = { android.util.Log.i("AntiRedInternet", it) },
+        firmarHandshake = { datos -> gestorIdentidad.firmar(datos.toString(Charsets.UTF_8)) ?: "" },
+        verificarFirma = { datos, firma, clave -> gestorIdentidad.verificarFirma(datos.toString(Charsets.UTF_8), firma, clave) },
+        aliasesProveedor = {
+            listOfNotNull(
+                usuarioIdConFallback(),
+                resolverIdentidad.miIkHex(),
+                com.renea.arete_social.feature.auth.GestorSesionLocal.obtenerUltimoUsuario()
+            ).distinct()
+        }
+    )
+
     private val detectorGps = ProximityManagerGps(context.applicationContext, repositorioUsuarios, usuarioIdProveedor = usuarioIdConFallback)
     private val detectorBle = ProximityManagerBle(
         context = context.applicationContext,
@@ -410,6 +433,25 @@ class ContenedorApp(private val context: Context) {
     val detectorProximidad: DetectorProximidad =
         ProximityManagerHibrido(detectorGps, detectorBle, wifiLanMesh.dispositivos)
 
+    /** Gestiona la auto-pausa de ubicación tras inactividad en segundo plano. */
+    val gestorAutoPausaUbicacion = GestorAutoPausaUbicacion(
+        context = context.applicationContext,
+        scope = scopeApp,
+        onPausarUbicacion = {
+            // Al pausarse, borramos la posición en el repositorio local para no dejar un punto fantasma
+            val uid = usuarioIdConFallback() ?: return@GestorAutoPausaUbicacion
+            runCatching {
+                repositorioUsuarios.actualizarUbicacion(
+                    uid,
+                    com.renea.arete_social.domain.model.Ubicacion(
+                        latitud = 0.0, longitud = 0.0, timestamp = 0L
+                    )
+                )
+            }
+        },
+        onReanudarUbicacion = null // La reanudación la gestiona MapaViewModel al colectar el GPS
+    )
+
     // ─── Mensajería BLE GATT (sin WiFi, sin pairing) ─────────────────────────
     // RFCOMM (Bluetooth Clásico) requería que los dispositivos fueran descubiertos
     // primero por el stack Clásico (SDP lookup), pero nosotros los descubrimos por BLE,
@@ -429,6 +471,8 @@ class ContenedorApp(private val context: Context) {
                 detectorProximidad = detectorBle,
                 messageRouter = messageRouter,
                 ubicacionPropiaProveedor = {
+                    // Si la ubicación está pausada por inactividad, no compartirla
+                    if (gestorAutoPausaUbicacion.estaPausado()) return@GattMensajeriaManager null
                     val visibilidad = com.renea.arete_social.feature.auth.GestorSesionLocal.obtenerUltimaVisibilidad()
                     if (visibilidad == com.renea.arete_social.domain.model.Visibilidad.INVISIBLE) {
                         null
@@ -449,7 +493,8 @@ class ContenedorApp(private val context: Context) {
                 esPeerAutorizadoParaUbicacion = { mac ->
                     val visibilidad = com.renea.arete_social.feature.auth.GestorSesionLocal.obtenerUltimaVisibilidad()
                     val uid = messageRouter.usuarioAutenticadoDe(mac)
-                    visibilidad != com.renea.arete_social.domain.model.Visibilidad.INVISIBLE &&
+                    !gestorAutoPausaUbicacion.estaPausado() &&
+                        visibilidad != com.renea.arete_social.domain.model.Visibilidad.INVISIBLE &&
                         uid != null && com.renea.arete_social.feature.auth.GestorAmistades.esAmigo(uid)
                 },
                 onEstadoPeerRecibido = { mac, usuarioId, estado, vence ->
@@ -476,9 +521,12 @@ class ContenedorApp(private val context: Context) {
         gestorIdentidad.cambiarUsuario(actualUid)
         com.renea.arete_social.feature.auth.GestorAmistades.inicializar(context.applicationContext, actualUid)
         com.renea.arete_social.data.mesh.MeshForegroundService.iniciar(context.applicationContext)
+        gestorAutoPausaUbicacion.iniciar()
         gattMensajeria?.iniciar()
         runCatching { wifiLanMesh.start() }
             .onFailure { android.util.Log.w("AntiRedNetwork", "No se pudo iniciar Wi-Fi LAN", it) }
+        runCatching { internetMesh.start() }
+            .onFailure { android.util.Log.w("AntiRedInternet", "No se pudo iniciar Internet Mesh", it) }
         // Mantener el BLE activo a nivel de app: una suscripción persistente al flujo compartido
         // garantiza que el scan+advertise no se detenga cuando el MapaViewModel se destruye.
         if (jobBleApp?.isActive != true) {
@@ -499,6 +547,7 @@ class ContenedorApp(private val context: Context) {
         // Cancelar la suscripción BLE de nivel-app al cerrar sesión.
         jobBleApp?.cancel()
         jobBleApp = null
+        gestorAutoPausaUbicacion.detener()
         // Lo descubierto y los súper poderes son de la persona que cierra sesión.
         servicioVisionRegional.detener()
         servicioModoSuper.detener()
@@ -506,6 +555,7 @@ class ContenedorApp(private val context: Context) {
         scopeApp.launch { runCatching { servicioDescubrimiento.limpiar() } }
         gattMensajeria?.detener()
         wifiLanMesh.close()
+        internetMesh.close()
         messageRouter.reiniciar()
         mensajesHibrido.reiniciarSesion()
         // S-01: Descargar claves de identidad mesh de memoria para que no persistan entre cuentas.

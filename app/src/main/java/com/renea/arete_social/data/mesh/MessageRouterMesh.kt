@@ -63,6 +63,9 @@ class MessageRouterMesh(
     private val RATE_TOKENS_POR_SEG = 10.0
     private val BURST_TOKENS        = 30.0
 
+    private val ecoMulaVentana = ConcurrentHashMap<String, Long>()
+    private val VENTANA_SUPRESION_MULA_MS = 10_000L // 10 segundos para supresión anti-mula
+
     private val MAX_OUTBOX_PROPIOS = 300
     private val MAX_OUTBOX_AJENOS  = 200
 
@@ -269,8 +272,27 @@ class MessageRouterMesh(
         }
 
         // 1c. Marcar visto atómicamente en memoria y persistir en SQLite
+        if (paquetesVistos.size > 10_000) {
+            // Evicción de emergencia contra ráfagas de flood DoS
+            val lim = System.currentTimeMillis() - (VENTANA_EXPIRACION_DEDUP_MS / 2)
+            paquetesVistos.entries.removeIf { it.value < lim }
+            if (paquetesVistos.size > 10_000) {
+                val primeraClave = paquetesVistos.keys().toList().take(1000)
+                primeraClave.forEach { paquetesVistos.remove(it) }
+            }
+        }
         if (paquetesVistos.putIfAbsent(claveDedupe, System.currentTimeMillis()) != null) return
         gestorOutboxLocal?.marcarPaqueteVisto(claveDedupe, System.currentTimeMillis())
+
+        // R-01: Supresión de eco anti-mula (si este paquete ya fue visto recientemente por BLE, no retransmitir por internet)
+        val ahoraMsActual = System.currentTimeMillis()
+        val claveEco = "${paqueteProcesado.id}:$origenMac"
+        val tiempoVisto = ecoMulaVentana[claveEco]
+        if (tiempoVisto != null && (ahoraMsActual - tiempoVisto) < VENTANA_SUPRESION_MULA_MS) {
+            Log.d(TAG, "Paquete ${paqueteProcesado.id.take(8)} suprimido por ventana anti-mula ($origenMac)")
+            return
+        }
+        ecoMulaVentana[claveEco] = ahoraMsActual
 
         // 2. Entrega local: para mí, o difusión (grupal/lugar/evento).
         val esParaMi = paqueteProcesado.destinatarioId == null || coincidenIds(paqueteProcesado.destinatarioId, miId)
@@ -278,8 +300,12 @@ class MessageRouterMesh(
             _paquetesEntrantes.emit(paqueteProcesado)
         }
 
-        // 3. Retransmitir si quedan saltos (TTL > 1)
-        val ttlEntrante = paqueteProcesado.ttl.coerceAtMost(PaqueteMesh.TTL_POR_DEFECTO)
+        // 3. Retransmitir si quedan saltos (TTL adaptativo)
+        // R-01: Para canales hiperlocales de radar (<= 2 km), limitar TTL a 3 saltos para no inundar la red.
+        val esHiperlocal = paqueteProcesado.chatId == "radar_general" || paqueteProcesado.chatId.startsWith("local-")
+        val maxTtlPermitido = if (esHiperlocal) 3 else PaqueteMesh.TTL_POR_DEFECTO
+        val ttlEntrante = paqueteProcesado.ttl.coerceAtMost(maxTtlPermitido)
+
         if (ttlEntrante > 1 && !esPropio) {
             val paqueteRetransmision = paqueteProcesado.copy(
                 ttl              = ttlEntrante - 1,
@@ -379,7 +405,13 @@ class MessageRouterMesh(
 
         var enviados = 0
         for ((clave, peer) in peers) {
-            if (clave != origenPeerId) {
+            val esMismoOrigen = origenPeerId != null && (
+                clave == origenPeerId ||
+                clave.equals(origenPeerId, ignoreCase = true) ||
+                clave.endsWith(origenPeerId, ignoreCase = true) ||
+                peer.dispositivo.macAddress?.equals(origenPeerId, ignoreCase = true) == true
+            )
+            if (!esMismoOrigen) {
                 if (runCatching { peer.enviar(paqueteAEnviar) }.getOrDefault(false)) {
                     enviados++
                 }

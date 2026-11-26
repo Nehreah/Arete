@@ -3,6 +3,7 @@ package com.renea.arete_social.feature.miausnake.ui.play
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -230,34 +232,51 @@ fun MiauSnakePlayScreen(
                     Modifier.align(Alignment.Center),
                     style = TextStyle(color = palette.food, fontSize = 96.sp, fontWeight = FontWeight.Bold)
                 )
-                PlayPhase.Paused -> Scrim {
-                    SnakeText("PAUSA", palette, size = 26, bold = true)
+                PlayPhase.Paused -> Scrim(palette) {
+                    SnakeText("PAUSA", palette, size = 24, bold = true)
                     Spacer(Modifier.height(16.dp))
-                    SnakeButton("Continuar", { controller.requestResume() }, palette, primary = true)
+                    SnakeButton("Continuar", { controller.requestResume() }, palette, Modifier.fillMaxWidth(), primary = true)
                     Spacer(Modifier.height(8.dp))
-                    SnakeButton("Reiniciar", restart, palette)
+                    SnakeButton("Reiniciar", restart, palette, Modifier.fillMaxWidth())
                     Spacer(Modifier.height(8.dp))
-                    SnakeButton("Salir", onExit, palette)
+                    SnakeButton("Salir", onExit, palette, Modifier.fillMaxWidth())
                 }
                 PlayPhase.Finished -> {
                     val won = controller.session.state.status == com.renea.arete_social.feature.miausnake.core.GameStatus.Won
-                    Scrim {
-                        SnakeText(if (won) "¡META LOGRADA!" else "FIN DE LA PARTIDA", palette, size = 24, bold = true)
+                    Scrim(palette) {
+                        SnakeBadge(if (won) "¡VICTORIA!" else "PARTIDA TERMINADA", palette, highlight = won)
                         Spacer(Modifier.height(8.dp))
-                        SnakeText("${controller.score}", palette, size = 56, bold = true)
-                        SnakeText("puntos · ${controller.bites} bocados · largo ${controller.length}", palette, size = 14)
+                        SnakeText(if (won) "¡META LOGRADA!" else "FIN DE LA PARTIDA", palette, size = 22, bold = true)
+                        Spacer(Modifier.height(6.dp))
+                        SnakeText("${controller.score}", palette, size = 48, bold = true)
+                        SnakeText("puntos", palette, size = 13, dim = true)
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                SnakeText("${controller.bites}", palette, size = 16, bold = true)
+                                SnakeText("Bocados", palette, size = 12, dim = true)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                SnakeText("${controller.length}", palette, size = 16, bold = true)
+                                SnakeText("Largo", palette, size = 12, dim = true)
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
                         SnakeText(
-                            if (controller.score > bestAtStart) "¡Nuevo récord de la sesión!" else "Récord de la sesión: $bestAtStart",
-                            palette, size = 13, dim = true
+                            if (controller.score > bestAtStart) "⭐ ¡Nuevo récord de la sesión!" else "Récord de la sesión: $bestAtStart",
+                            palette, size = 13, bold = controller.score > bestAtStart, dim = controller.score <= bestAtStart
                         )
                         resultFooter?.let {
-                            Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(10.dp))
                             it()
                         }
                         Spacer(Modifier.height(16.dp))
-                        SnakeButton("Jugar otra vez", restart, palette, primary = true)
+                        SnakeButton("Jugar otra vez", restart, palette, Modifier.fillMaxWidth(), primary = true)
                         Spacer(Modifier.height(8.dp))
-                        SnakeButton("Salir", onExit, palette)
+                        SnakeButton("Salir", onExit, palette, Modifier.fillMaxWidth())
                     }
                 }
                 PlayPhase.Playing -> Unit
@@ -274,20 +293,43 @@ private fun Hud(controller: SnakePlayController, level: Level, settings: PlaySet
     val pause: @Composable () -> Unit = {
         PauseButton(palette) { controller.pause() }
     }
-    Row(
-        Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, palette.wallEdge.copy(alpha = 0.45f), RoundedCornerShape(16.dp))
+            .background(palette.panel.copy(alpha = 0.95f))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        if (settings.leftHanded) pause()
-        Column(Modifier.weight(1f)) {
-            SnakeText("PUNTOS ${controller.score}", palette, size = 16, bold = true)
-            SnakeText(
-                (if (goal != null) "BOCADOS ${controller.bites}/$goal" else "BOCADOS ${controller.bites}") + " · LARGO ${controller.length}",
-                palette, size = 12, dim = true
-            )
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            if (settings.leftHanded) pause()
+            Row(
+                Modifier.weight(1f).padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Column {
+                    SnakeText("PUNTOS", palette, size = 12, dim = true)
+                    SnakeText("${controller.score}", palette, size = 18, bold = true)
+                }
+                Box(
+                    Modifier
+                        .size(1.dp, 28.dp)
+                        .background(palette.wallEdge.copy(alpha = 0.4f))
+                )
+                Column {
+                    val metaText = if (goal != null) "BOCADOS: ${controller.bites}/$goal" else "BOCADOS: ${controller.bites}"
+                    SnakeText(metaText, palette, size = 12, bold = true)
+                    SnakeText("Largo: ${controller.length}", palette, size = 12, dim = true)
+                }
+            }
+            if (!settings.leftHanded) pause()
         }
-        if (!settings.leftHanded) pause()
     }
 }
 
@@ -296,15 +338,16 @@ private fun PauseButton(palette: com.renea.arete_social.feature.miausnake.ui.the
     Box(
         Modifier
             .size(48.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(palette.panel)
+            .clip(CircleShape)
+            .border(1.dp, palette.wallEdge.copy(alpha = 0.6f), CircleShape)
+            .background(palette.background.copy(alpha = 0.8f))
             .clickable(onClickLabel = "Pausar", onClick = onClick)
             .semantics { contentDescription = "Pausa" },
         contentAlignment = Alignment.Center
     ) {
-        Canvas(Modifier.size(20.dp)) {
-            val w = size.width * 0.32f
-            drawRect(palette.head, Offset(size.width * 0.12f, 0f), Size(w, size.height))
+        Canvas(Modifier.size(18.dp)) {
+            val w = size.width * 0.28f
+            drawRect(palette.head, Offset(size.width * 0.16f, 0f), Size(w, size.height))
             drawRect(palette.head, Offset(size.width * 0.56f, 0f), Size(w, size.height))
         }
     }
@@ -331,15 +374,29 @@ private fun Controls(
 }
 
 @Composable
-private fun Scrim(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
-    Column(
-        // Fase 7: al aparecer pausa / resultado, el lector de pantalla lo lee entero y sin cortar al jugador.
-        Modifier.fillMaxSize().background(Color(0xCC171B14))
-            .semantics(mergeDescendants = false) { liveRegion = LiveRegionMode.Polite },
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        content = content
-    )
+private fun Scrim(
+    palette: com.renea.arete_social.feature.miausnake.ui.theme.GamePalette,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
+) {
+    Box(
+        Modifier.fillMaxSize().background(Color(0xD910140E)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            // Fase 7: al aparecer pausa / resultado, el lector de pantalla lo lee entero y sin cortar al jugador.
+            Modifier
+                .padding(20.dp)
+                .fillMaxWidth(0.92f)
+                .clip(RoundedCornerShape(22.dp))
+                .border(1.5.dp, palette.wallEdge.copy(alpha = 0.6f), RoundedCornerShape(22.dp))
+                .background(palette.panel)
+                .padding(20.dp)
+                .semantics(mergeDescendants = false) { liveRegion = LiveRegionMode.Polite },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            content = content
+        )
+    }
 }
 
 private fun newSeed(): Long = System.nanoTime() and 0xFFFFFFL
