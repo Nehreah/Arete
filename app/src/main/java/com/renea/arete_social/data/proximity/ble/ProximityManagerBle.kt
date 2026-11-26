@@ -426,11 +426,13 @@ class ProximityManagerBle(
         iniciarPublicidad()
         val scannerListo = scanner
 
-        // ── Escaneo por filtro de servicio AntiRed (0xFED0) y datos de servicio ──────
+        // ── Escaneo por filtro de servicio AntiRed (0xFED0) ──────────────────
+        // Usamos UN SOLO filtro de UUID (el más compatible con todos los chips).
+        // Filtros por setServiceData() o múltiples filtros simultáneos fallan silenciosamente
+        // en chips MediaTek, Xiaomi y algunos Samsung Exynos. El filtrado fino por datos de
+        // servicio se hace por software en procesarResultadoScan().
         val filtros = listOf(
-            ScanFilter.Builder().setServiceUuid(ANTIRED_PARCEL_UUID).build(),
-            ScanFilter.Builder().setServiceData(ANTIRED_PARCEL_UUID, null).build(),
-            ScanFilter.Builder().setServiceData(ANTIRED_NOMBRE_PARCEL_UUID, null).build()
+            ScanFilter.Builder().setServiceUuid(ANTIRED_PARCEL_UUID).build()
         )
 
         val settingsAgresivos = ScanSettings.Builder()
