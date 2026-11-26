@@ -51,7 +51,7 @@ private const val COLUMNS = 2
 
 /**
  * Selector de mapas por packs: interfaz moderna con filtro por paquetes y tarjetas estilizadas.
- * Los 20 mapas están disponibles desde el principio.
+ * Los 20 mapas están disponibles desde el principio..
  */
 @Composable
 fun MapSelector(
