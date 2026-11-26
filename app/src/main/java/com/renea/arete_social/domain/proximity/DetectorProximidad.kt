@@ -14,4 +14,5 @@ interface DetectorProximidad {
     fun ubicacionPropia(): Flow<Ubicacion>
     fun descubrir(): Flow<List<Dispositivo>>
     fun detener()
+    fun actualizarEstadoDispositivo(idOMac: String, estado: String?, vence: Long?) {}
 }

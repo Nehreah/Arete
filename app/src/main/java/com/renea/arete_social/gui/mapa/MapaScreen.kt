@@ -519,6 +519,7 @@ fun MapaScreen(
                                     repositorioLibreria = contenedor.libreria,
                                     onEstadoCambiado = { texto, vence ->
                                         contenedor.gestorLlamadas.transmitirEstadoMascota(texto, vence)
+                                        contenedor.detectorProximidad.actualizarEstadoDispositivo(usuarioIdActual, texto, vence)
                                     },
                                     onAtras = { scope.launch { pagerState.animateScrollToPage(TabNavegacion.MAPA.ordinal) } },
                                     modifier = Modifier.fillMaxSize()

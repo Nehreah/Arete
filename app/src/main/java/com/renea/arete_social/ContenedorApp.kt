@@ -412,6 +412,7 @@ class ContenedorApp(private val context: Context) {
         }
     )
 
+    private val ultimoDescubrimientoPorPar = java.util.concurrent.ConcurrentHashMap<String, Long>()
     private val detectorGps = ProximityManagerGps(context.applicationContext, repositorioUsuarios, usuarioIdProveedor = usuarioIdConFallback)
     private val detectorBle = ProximityManagerBle(
         context = context.applicationContext,
@@ -419,10 +420,18 @@ class ContenedorApp(private val context: Context) {
         nombreProveedor = { com.renea.arete_social.feature.auth.GestorSesionLocal.obtenerUltimoNombre() },
         visibilidadProveedor = { com.renea.arete_social.feature.auth.GestorSesionLocal.obtenerUltimaVisibilidad() },
         onDispositivoDetectado = { id, nombre ->
+            val ahora = System.currentTimeMillis()
+            val ultimo = ultimoDescubrimientoPorPar[id] ?: 0L
+            val dispararSync = (ahora - ultimo >= 45_000L)
+            if (dispararSync) {
+                ultimoDescubrimientoPorPar[id] = ahora
+            }
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                 resolverPerfiles.registrarParDescubierto(id, nombre)
-                sincronizadorCercanos.onParDetectado(id)
-                gestorEventosBle.emitirResumenEventos(destinatarioDirecto = id)
+                if (dispararSync) {
+                    sincronizadorCercanos.onParDetectado(id)
+                    gestorEventosBle.emitirResumenEventos(destinatarioDirecto = id)
+                }
             }
         },
         resolverNombreProveedor = { id ->

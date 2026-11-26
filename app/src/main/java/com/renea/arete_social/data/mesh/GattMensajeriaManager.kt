@@ -103,7 +103,6 @@ class GattMensajeriaManager(
     private val mtuPorCentral = ConcurrentHashMap<String, Int>()
     private val notifAck = ConcurrentHashMap<String, CompletableDeferred<Int>>()
     private val notifMutex = ConcurrentHashMap<String, Mutex>()
-    private val reintentosDiferidos = ConcurrentHashMap<String, Job>()
 
     private fun tienePermisoConnect(): Boolean =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -323,11 +322,11 @@ class GattMensajeriaManager(
                     }.getOrNull()
                     if (paquete != null) {
                         scope.launch { messageRouter.enrutar(paquete, origenMac = device.address) }
-                        // Registrar este cliente conectado en el Servidor como peer de retorno inmediato vía notificaciones
+                        // Registrar este cliente conectado en el Servidor como peer de retorno inmediato
                         registrarClienteComoPeer(device, paquete.remitenteId)
                         if (clientes[device.address] == null && clientes.size < MAX_CLIENTES) {
                             val disp = Dispositivo(
-                                id = paquete.remitenteId,
+                                id = paquete.remitenteId ?: device.address,
                                 nombre = "Par conectado",
                                 señal = null,
                                 ultimaConexion = System.currentTimeMillis(),
@@ -469,11 +468,8 @@ class GattMensajeriaManager(
                         Log.w(TAG, "GattServer: Error o rechazo al disparar notificación a ${device.address}")
                         return@withLock false
                     }
-                    // En notificaciones sin confirmación (confirm=false), el callback onNotificationSent puede no dispararse
-                    // de forma consistente en todos los chipsets Android. Si devuelve status explícito, lo validamos;
-                    // si expira un breve intervalo de 80ms, asumimos éxito del buffer disparado por el controlador.
-                    val status = withTimeoutOrNull(80L) { ack.await() }
-                    status == null || status == BluetoothGatt.GATT_SUCCESS
+                    val status = withTimeoutOrNull(3000L) { ack.await() }
+                    status == BluetoothGatt.GATT_SUCCESS
                 } finally {
                     if (notifAck[device.address] === ack) {
                         notifAck.remove(device.address)
@@ -483,7 +479,6 @@ class GattMensajeriaManager(
                     Log.w(TAG, "GattServer: Falló entrega de fragmento de notificación a ${device.address}")
                     return@withLock false
                 }
-                delay(25L) // Pacing para evitar saturación del buffer BLE del kernel
             }
             true
         }
@@ -536,30 +531,29 @@ class GattMensajeriaManager(
                     }
 
                     val miId = usuarioIdProveedor()
-                    // Desempate determinista mínimo: si el par tiene un ID mayor que el nuestro,
-                    // nos conectamos de inmediato. Si tiene un ID menor, introducimos un micro-desfase (150ms)
-                    // para evitar colisiones de slots al inicializar el enlace BLE.
+                    // B-04 Desempate determinista: si el par tiene un ID mayor que el nuestro,
+                    // nosotros somos el iniciador prioritario. Si el par tiene un ID menor,
+                    // esperamos un tiempo de gracia (6s) para permitir que el par inicie la conexión
+                    // entrante a nuestro servidor GATT y así evitar colisiones status=133.
                     val esIniciador = when {
                         miId == null || uid == null -> true
                         else -> miId < uid
                     }
 
                     if (!esIniciador) {
-                        val jobPrevio = reintentosDiferidos[mac]
-                        if (jobPrevio == null || !jobPrevio.isActive) {
-                            val nuevoJob = scope.launch {
-                                delay(3500L + (mac.hashCode().toLong() and 0x1FF))
-                                reintentosDiferidos.remove(mac)
-                                // Si el par iniciador ya se conectó a nuestro servidor GATT, ya disponemos de
-                                // un enlace bidireccional plenamente operativo; no abrir cliente redundante.
-                                if (!clientes.containsKey(mac) && !servidoresPeers.containsKey("srv-$mac")) {
-                                    if (clientes.size < MAX_CLIENTES) {
-                                        val cliente = ClienteGatt(mac, dispositivo)
-                                        if (clientes.putIfAbsent(mac, cliente) == null) cliente.conectar()
-                                    }
+                        // Si ya tenemos conexión entrante de este peer en el servidor, no iniciamos cliente activo
+                        if (servidoresPeers.containsKey("srv-$mac")) {
+                            return@forEach
+                        }
+                        // Lanzar conexión diferida como fallback
+                        scope.launch {
+                            delay(6_000L)
+                            if (!servidoresPeers.containsKey("srv-$mac") && !clientes.containsKey(mac)) {
+                                if (clientes.size < MAX_CLIENTES) {
+                                    val cliente = ClienteGatt(mac, dispositivo)
+                                    if (clientes.putIfAbsent(mac, cliente) == null) cliente.conectar()
                                 }
                             }
-                            reintentosDiferidos[mac] = nuevoJob
                         }
                         return@forEach
                     }
@@ -577,19 +571,15 @@ class GattMensajeriaManager(
         @Volatile private var gatt: BluetoothGatt? = null
         @Volatile private var mtu = 23
         @Volatile private var cerrado = false
-        @Volatile private var conectando = false
         @Volatile private var ackPendiente: CompletableDeferred<Int>? = null
         @Volatile private var cccdAck: CompletableDeferred<Boolean>? = null
         @Volatile private var ultimoIntentoConexion = 0L
-        private var jobTimeoutConexion: Job? = null
-        private var jobTimeoutMtu: Job? = null
         private val listo = AtomicBoolean(false)
         private val cola = ArrayDeque<PaqueteMesh>()           // protegido con synchronized(cola)
         private val senal = Channel<Unit>(Channel.CONFLATED)
         private var jobEnvio: Job? = null
         private var jobLecturaUbicacion: Job? = null
         private var fallosSeguidos = 0
-        private val gattMutex = Mutex()
 
         private suspend fun habilitarCccd(g: BluetoothGatt, char: BluetoothGattCharacteristic): Boolean {
             val cccd = char.getDescriptor(ANTIRED_CCCD_UUID) ?: return false
@@ -597,15 +587,13 @@ class GattMensajeriaManager(
             cccdAck = ack
             return try {
                 g.setCharacteristicNotification(char, true)
-                val ok = gattMutex.withLock {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        g.writeDescriptor(cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE) == BluetoothStatusCodes.SUCCESS
-                    } else {
-                        @Suppress("DEPRECATION")
-                        cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                        @Suppress("DEPRECATION")
-                        g.writeDescriptor(cccd)
-                    }
+                val ok = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    g.writeDescriptor(cccd, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE) == BluetoothStatusCodes.SUCCESS
+                } else {
+                    @Suppress("DEPRECATION")
+                    cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                    @Suppress("DEPRECATION")
+                    g.writeDescriptor(cccd)
                 }
                 if (!ok) return false
                 withTimeoutOrNull(2500L) { ack.await() } ?: false
@@ -618,76 +606,36 @@ class GattMensajeriaManager(
 
         fun estaListo() = listo.get() && !cerrado
 
-        fun debeReintentar(): Boolean {
-            if (cerrado || listo.get() || conectando) return false
-            val baseBackoffMs = when (fallosSeguidos) {
-                0 -> 2_500L
-                1 -> 4_000L
-                2 -> 8_000L
-                else -> 15_000L
-            }
-            val jitter = (mac.hashCode().toLong() and 0x1FF)
-            return (System.currentTimeMillis() - ultimoIntentoConexion > (baseBackoffMs + jitter))
-        }
+        fun debeReintentar(): Boolean =
+            !cerrado && !listo.get() && (System.currentTimeMillis() - ultimoIntentoConexion > 4_000L)
 
         fun conectar() {
-            if (cerrado || conectando || listo.get() || !tienePermisoConnect() || !bluetoothAdapter.isEnabled) return
-            conectando = true
+            if (cerrado || !tienePermisoConnect() || !bluetoothAdapter.isEnabled) return
             ultimoIntentoConexion = System.currentTimeMillis()
             val device = dispositivoBtProveedor?.invoke(mac)
                 ?: runCatching { bluetoothAdapter.getRemoteDevice(mac) }.getOrNull()
-                ?: run {
-                    conectando = false
-                    return
-                }
+                ?: return
             listo.set(false)
             Log.d(TAG, "[$mac] Iniciando conexión GATT (fallos=$fallosSeguidos)")
 
-            // Si existía un handle GATT previo, cerrarlo antes de un nuevo intento
-            runCatching { gatt?.close() }
-            gatt = null
-
             val cb = object : BluetoothGattCallback() {
                 override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
-                    if (g !== gatt && gatt != null) {
-                        Log.d(TAG, "ClienteGatt [$mac]: ignorando callback de conexión de GATT obsoleto")
-                        runCatching { g.close() }
-                        return
-                    }
                     Log.d(TAG, "ClienteGatt onConnectionStateChange: mac=$mac status=$status newState=$newState")
                     if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
-                        jobTimeoutConexion?.cancel()
                         gatt = g
-                        conectando = false
-
-                        // Timeout MTU de 2.5s: si no hay respuesta de onMtuChanged, llamar a discoverServices()
-                        jobTimeoutMtu?.cancel()
-                        jobTimeoutMtu = scope.launch {
-                            delay(2500L)
-                            if (gatt === g && !listo.get() && !cerrado) {
-                                Log.d(TAG, "[$mac] MTU timeout (2.5s) — procediendo a discoverServices()")
-                                g.discoverServices()
-                            }
-                        }
-                        if (!g.requestMtu(512)) {
-                            jobTimeoutMtu?.cancel()
-                            g.discoverServices()
-                        }
+                        if (!g.requestMtu(512)) g.discoverServices()   // → onMtuChanged / onServicesDiscovered
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED || status != BluetoothGatt.GATT_SUCCESS) {
                         alDesconectar(g, status)
                     }
                 }
 
                 override fun onMtuChanged(g: BluetoothGatt, mtuSize: Int, status: Int) {
-                    if (g !== gatt && gatt != null) return
-                    jobTimeoutMtu?.cancel()
                     Log.d(TAG, "ClienteGatt onMtuChanged: mac=$mac mtuSize=$mtuSize status=$status")
                     if (status == BluetoothGatt.GATT_SUCCESS) mtu = mtuSize
                     g.discoverServices()
                 }
 
                 override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
-                    if (g !== gatt && gatt != null) return
                     Log.d(TAG, "ClienteGatt onServicesDiscovered: mac=$mac status=$status")
                     val srv = g.getService(ANTIRED_GATT_SERVICE_UUID)
                     val char = srv?.getCharacteristic(ANTIRED_GATT_MSG_UUID)
@@ -698,7 +646,6 @@ class GattMensajeriaManager(
                     }
                     fallosSeguidos = 0
                     listo.set(true)
-                    conectando = false
                     val self = this@ClienteGatt
                     val idPeerCli = "cli-$mac"
                     val dispCli = self.dispositivo.copy(id = idPeerCli)
@@ -744,30 +691,17 @@ class GattMensajeriaManager(
                         val charEstado = srv.getCharacteristic(ANTIRED_GATT_ESTADO_UUID)
                         jobLecturaUbicacion?.cancel()
                         jobLecturaUbicacion = scope.launch {
-                            // Primera lectura inmediata (tras breve estabilización de la conexión)
-                            delay(500L)
                             var paso = 0
                             while (isActive && estaListo()) {
-                                // Leer ubicación y estado solo si no hay operaciones en vuelo
                                 if (ackPendiente == null && synchronized(cola) { cola.isEmpty() }) {
-                                    gattMutex.withLock {
-                                        if (ackPendiente == null && synchronized(cola) { cola.isEmpty() } && estaListo()) {
-                                            // Primera iteración: leer ambas características para actualización inmediata
-                                            if (paso == 0) {
-                                                if (charLoc != null) runCatching { g.readCharacteristic(charLoc) }
-                                                delay(300L)
-                                                if (charEstado != null) runCatching { g.readCharacteristic(charEstado) }
-                                            } else if (paso % 2 == 0) {
-                                                if (charLoc != null) runCatching { g.readCharacteristic(charLoc) }
-                                            } else {
-                                                if (charEstado != null) runCatching { g.readCharacteristic(charEstado) }
-                                            }
-                                        }
+                                    if (paso % 2 == 0) {
+                                        if (charLoc != null) runCatching { g.readCharacteristic(charLoc) }
+                                    } else {
+                                        if (charEstado != null) runCatching { g.readCharacteristic(charEstado) }
                                     }
                                 }
                                 paso++
-                                // Esperar entre lecturas periódicas (10s): el delay va al FINAL
-                                delay(10_000L)
+                                delay(5_000L)
                             }
                         }
                     }
@@ -840,21 +774,8 @@ class GattMensajeriaManager(
             }
 
             runCatching {
-                val nuevoGatt = device.connectGatt(context, false, cb, BluetoothDevice.TRANSPORT_LE)
-                gatt = nuevoGatt
-                // Timeout de conexión GATT (12s): si en 12s no conecta, abortar intento y reintentar con backoff
-                jobTimeoutConexion?.cancel()
-                jobTimeoutConexion = scope.launch {
-                    delay(12_000L)
-                    if (conectando && !listo.get() && !cerrado) {
-                        Log.w(TAG, "[$mac] Timeout de conexión GATT (12s) expirado — cancelando intento")
-                        alDesconectar(nuevoGatt, 133)
-                    }
-                }
-            }.onFailure {
-                conectando = false
-                Log.e(TAG, "[$mac] Error en connectGatt: ${it.message}")
-            }
+                device.connectGatt(context, false, cb, BluetoothDevice.TRANSPORT_LE)
+            }.onFailure { Log.e(TAG, "[$mac] Error en connectGatt: ${it.message}") }
         }
 
         private fun procesarNotificacionEntrante(origenMac: String, value: ByteArray?) {
@@ -871,13 +792,6 @@ class GattMensajeriaManager(
         }
 
         private fun alDesconectar(g: BluetoothGatt, status: Int) {
-            if (g !== gatt && gatt != null) {
-                runCatching { g.close() }
-                return
-            }
-            conectando = false
-            jobTimeoutConexion?.cancel()
-            jobTimeoutMtu?.cancel()
             Log.d(TAG, "[$mac] Desconectado (status=$status)")
             listo.set(false)
             jobEnvio?.cancel()
@@ -889,13 +803,12 @@ class GattMensajeriaManager(
             messageRouter.removerPeer("cli-$mac")
             GattFramer.limpiarSesion(mac)
             runCatching { g.close() }
-            if (gatt === g) gatt = null
+            gatt = null
             if (cerrado) return
 
             fallosSeguidos++
             if (fallosSeguidos > MAX_FALLOS_SEGUIDOS) {
                 // Se libera el hueco; el descubrimiento lo recreará si el peer sigue a la vista.
-                cerrar()
                 clientes.remove(mac, this)
                 return
             }
@@ -909,9 +822,6 @@ class GattMensajeriaManager(
 
         fun cerrar() {
             cerrado = true
-            conectando = false
-            jobTimeoutConexion?.cancel()
-            jobTimeoutMtu?.cancel()
             listo.set(false)
             jobEnvio?.cancel()
             jobLecturaUbicacion?.cancel()
@@ -985,22 +895,19 @@ class GattMensajeriaManager(
         /** Todos los fragmentos van con ACK (WRITE_TYPE_DEFAULT): una sola operación GATT en vuelo. */
         @Suppress("DEPRECATION")
         private suspend fun escribir(g: BluetoothGatt, char: BluetoothGattCharacteristic, datos: ByteArray): Boolean {
-            repeat(6) { intento ->
-                val ok = gattMutex.withLock {
-                    runCatching {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            g.writeCharacteristic(char, datos, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) ==
-                                BluetoothStatusCodes_SUCCESS
-                        } else {
-                            char.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-                            char.value = datos
-                            g.writeCharacteristic(char)
-                        }
-                    }.getOrDefault(false)
-                }
+            repeat(3) {
+                val ok = runCatching {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        g.writeCharacteristic(char, datos, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) ==
+                            BluetoothStatusCodes_SUCCESS
+                    } else {
+                        char.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+                        char.value = datos
+                        g.writeCharacteristic(char)
+                    }
+                }.getOrDefault(false)
                 if (ok) return true
-                // Liberar el mutex antes del backoff para no bloquear lecturas de ubicación
-                if (intento < 5) delay(80)
+                delay(50)   // el stack estaba ocupado: reintento breve
             }
             return false
         }

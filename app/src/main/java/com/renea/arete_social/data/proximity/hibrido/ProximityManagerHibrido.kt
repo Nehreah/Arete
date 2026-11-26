@@ -202,4 +202,8 @@ class ProximityManagerHibrido(
         detectorGps.detener()
         // El BLE se apaga solo cuando se va el último suscriptor (WhileSubscribed).
     }
+
+    override fun actualizarEstadoDispositivo(idOMac: String, estado: String?, vence: Long?) {
+        detectorBle.actualizarEstadoDispositivo(idOMac, estado, vence)
+    }
 }

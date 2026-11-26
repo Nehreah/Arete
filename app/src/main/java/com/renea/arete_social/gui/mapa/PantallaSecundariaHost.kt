@@ -349,7 +349,12 @@ fun PantallaSecundariaHost(
                 viewerId = usuarioIdActual,
                 detectorProximidad = contenedor.detectorProximidad,
                 repositorioEventos = contenedor.repositorioEventos,
+                repositorioUsuarios = contenedor.repositorioUsuarios,
                 repositorioLibreria = contenedor.libreria,
+                onEstadoCambiado = { texto, vence ->
+                    contenedor.gestorLlamadas.transmitirEstadoMascota(texto, vence)
+                    contenedor.detectorProximidad.actualizarEstadoDispositivo(usuarioIdActual, texto, vence)
+                },
                 onAtras = onAtras
             )
         }

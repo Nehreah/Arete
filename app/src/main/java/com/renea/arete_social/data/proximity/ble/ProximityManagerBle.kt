@@ -214,7 +214,7 @@ class ProximityManagerBle(
                 runCatching {
                     val uuid = UUID.fromString(uuidPart)
                     java.nio.ByteBuffer.allocate(17)
-                        .put(0x04.toByte()) // Tipo 0x04: UUID de usuario registrado local
+                        .put(0x04.toByte()) // Tipo 0x04: UUID de usuario local
                         .putLong(uuid.mostSignificantBits)
                         .putLong(uuid.leastSignificantBits)
                         .array()
@@ -247,17 +247,26 @@ class ProximityManagerBle(
         }
 
         // Paquete principal: 28 bytes (Flags: 3B + ServiceUuid: 4B + ServiceData: 21B) <= límite 31B legado.
-        // Incluimos tanto ServiceUuid como ServiceData para matching garantizado en hardware y extracción de datos.
         val data = AdvertiseData.Builder()
             .addServiceUuid(ANTIRED_PARCEL_UUID)
             .addServiceData(ANTIRED_PARCEL_UUID, dataBytes)
             .setIncludeDeviceName(false)
             .build()
 
-        // Desactivamos temporalmente el scanResponse secundario: en chipsets MediaTek (MT6765/MT6878),
-        // coordinar ADV_IND + SCAN_RSP dual satura los buffers de ranura HCI de radio, impidiendo
-        // que la transmisión salga al aire. Un solo paquete compacto garantiza emisión continua al 100%.
-        val scanResponse: AdvertiseData? = null
+        // Paquete separado (scan response) con el nombre de perfil truncado a bytes UTF-8 completos
+        val nombreBytes = nombreProveedor()
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { truncarUtf8(it, MAX_BYTES_NOMBRE) }
+
+        val scanResponse = if ((tier == 1 || tier == 2) && nombreBytes != null) {
+            AdvertiseData.Builder()
+                .addServiceData(ANTIRED_NOMBRE_PARCEL_UUID, nombreBytes)
+                .setIncludeDeviceName(false)
+                .build()
+        } else {
+            null
+        }
 
         val settings = when (tier) {
             1 -> AdvertiseSettings.Builder()
@@ -423,11 +432,10 @@ class ProximityManagerBle(
         var scanner: BluetoothLeScanner? = adapter?.bluetoothLeScanner
         var avisado = false
         while (adapter == null || !adapter.isEnabled || scanner == null ||
-            !tienePermisosBle() || usuarioIdProveedor() == null ||
-            !com.renea.arete_social.util.GestorCompatibilidadFabricantes.estaUbicacionHabilitada(context)
+            !tienePermisosBle() || usuarioIdProveedor() == null
         ) {
             if (!avisado) {
-                Log.d(TAG, "BLE en espera: adapter=${adapter != null}, isEnabled=${adapter?.isEnabled}, scanner=${scanner != null}, permisos=${tienePermisosBle()}, ubicacion=${com.renea.arete_social.util.GestorCompatibilidadFabricantes.estaUbicacionHabilitada(context)}, usuarioId=${usuarioIdProveedor()}")
+                Log.d(TAG, "BLE en espera: adapter=${adapter != null}, isEnabled=${adapter?.isEnabled}, scanner=${scanner != null}, permisos=${tienePermisosBle()}, usuarioId=${usuarioIdProveedor()}")
                 avisado = true
             }
             delay(REINTENTO_REQUISITOS_MS)
@@ -439,12 +447,12 @@ class ProximityManagerBle(
         iniciarPublicidad()
         val scannerListo = scanner
 
-        // ── Escaneo BLE por filtro de servicio dedicado (0xFED0) ─────────────
-        // Coincide directamente con el ServiceUuid emitido en el anuncio sin scanResponse.
+        // ── Escaneo por filtro de servicio AntiRed (0xFED0) y datos de servicio ──────
         val filtros = listOf(
-            ScanFilter.Builder().setServiceUuid(ANTIRED_PARCEL_UUID).build()
+            ScanFilter.Builder().setServiceUuid(ANTIRED_PARCEL_UUID).build(),
+            ScanFilter.Builder().setServiceData(ANTIRED_PARCEL_UUID, null).build(),
+            ScanFilter.Builder().setServiceData(ANTIRED_NOMBRE_PARCEL_UUID, null).build()
         )
-        var filtrosActuales = filtros
 
         val settingsAgresivos = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
@@ -461,15 +469,8 @@ class ProximityManagerBle(
         var reintentosActivosScan = 0
         lateinit var scanCallback: ScanCallback
 
-        var totalScanResultsRecibidos = 0
         scanCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult?) {
-                totalScanResultsRecibidos++
-                if (totalScanResultsRecibidos <= 10 || totalScanResultsRecibidos % 50 == 0) {
-                    val uuids = result?.scanRecord?.serviceUuids?.map { it.uuid.toString() }
-                    val sData = result?.scanRecord?.serviceData?.keys?.map { it.uuid.toString() }
-                    Log.d(TAG, "ScanResult #$totalScanResultsRecibidos: dev=${result?.device?.address}, uuids=$uuids, sData=$sData")
-                }
                 result?.let { procesarResultadoScan(it) }
             }
 
@@ -533,8 +534,6 @@ class ProximityManagerBle(
                     return
                 }
 
-                Log.d(TAG, "Firma AntiRed detectada de ${result.device?.address} (serviceData=${serviceData?.size}B, nombreData=${nombreData?.size}B, tieneUuid=$tieneUuid)")
-
                 val usuarioId = serviceData?.let { bytes ->
                     when {
                         bytes.size == 17 && bytes[0] == 0x01.toByte() -> {
@@ -579,7 +578,6 @@ class ProximityManagerBle(
                 }
 
                 val deviceAddress      = result.device?.address ?: return
-                Log.i(TAG, "¡Par AntiRed válido detectado!: mac=$deviceAddress, usuarioId=$usuarioId, rssi=${result.rssi}")
                 val rssi               = result.rssi
                 val distanciaEstimada  = calcularDistanciaRssi(rssi)
 
@@ -641,29 +639,10 @@ class ProximityManagerBle(
         }
 
         runCatching {
-            scannerListo.startScan(filtrosActuales, settingsAgresivos, scanCallback)
-            Log.d(TAG, "Escaneo BLE iniciado en modo LOW_LATENCY con filtro 0xFED0 (filtros=${filtrosActuales.size})")
+            scannerListo.startScan(filtros, settingsAgresivos, scanCallback)
+            Log.d(TAG, "Escaneo BLE iniciado en modo LOW_LATENCY con filtro 0xFED0")
         }.onFailure {
             Log.e(TAG, "Error al iniciar escaneo BLE: ${it.message}")
-        }
-
-        // Watchdog para controladores con filtrado de hardware defectuoso:
-        // Si tras 5 s no hay dispositivos descubiertos y había filtros de hardware, conmutar a emptyList().
-        launch {
-            delay(5_000L)
-            if (dispositivosDescubiertos.isEmpty() && isActive && filtrosActuales.isNotEmpty()) {
-                val sc = bluetoothAdapter?.bluetoothLeScanner ?: scannerListo
-                Log.i(TAG, "Watchdog BLE: 0 pares detectados tras 5s; conmutando a filtrado software compatible (emptyList)")
-                runCatching { sc.stopScan(scanCallback) }
-                delay(200L)
-                filtrosActuales = emptyList()
-                runCatching {
-                    sc.startScan(emptyList(), settingsActivos, scanCallback)
-                    Log.i(TAG, "Watchdog BLE: escaneo reactivado exitosamente con filtrado software")
-                }.onFailure {
-                    Log.e(TAG, "Watchdog BLE: error al reiniciar escaneo: ${it.message}")
-                }
-            }
         }
 
         // Fase 2: tras DISCOVERY_LATENCY_MS, bajar a BALANCED para ahorrar batería
@@ -676,9 +655,9 @@ class ProximityManagerBle(
                 .setReportDelay(0L)
                 .build()
             runCatching {
-                currentScanner.startScan(filtrosActuales, settingsBalanceados, scanCallback)
+                currentScanner.startScan(filtros, settingsBalanceados, scanCallback)
                 settingsActivos = settingsBalanceados   // actualizar referencia activa
-                Log.d(TAG, "Escaneo BLE cambiado a modo BALANCED (filtros=${filtrosActuales.size})")
+                Log.d(TAG, "Escaneo BLE cambiado a modo BALANCED (filtro 0xFED0)")
             }.onFailure {
                 Log.e(TAG, "No se pudo reiniciar en modo BALANCED: ${it.message}")
             }
@@ -694,7 +673,7 @@ class ProximityManagerBle(
                     val nuevoScanner = bluetoothAdapter?.bluetoothLeScanner
                     if (nuevoScanner != null) {
                         runCatching { nuevoScanner.stopScan(scanCallback) }
-                        runCatching { nuevoScanner.startScan(filtrosActuales, settingsActivos, scanCallback) }
+                        runCatching { nuevoScanner.startScan(filtros, settingsActivos, scanCallback) }
                     }
                 } else if (state == BluetoothAdapter.STATE_OFF) {
                     Log.d(TAG, "Bluetooth desactivado por el sistema: limpiando dispositivos")
@@ -778,19 +757,36 @@ class ProximityManagerBle(
         }
     }
 
-    fun actualizarEstadoDispositivo(idOMac: String, estado: String?, vence: Long?) {
+    override fun actualizarEstadoDispositivo(idOMac: String, estado: String?, vence: Long?) {
         val ahora = System.currentTimeMillis()
         var modificado = false
         val targetNorm = idOMac.replace("-", "").trim().lowercase()
-        val sinPrefijo = if (idOMac.startsWith("invitado-local-")) idOMac.removePrefix("invitado-local-") else null
-        val conPrefijo = if (!idOMac.startsWith("invitado-local-")) "invitado-local-$idOMac" else null
+        val sinPrefijo = when {
+            idOMac.startsWith("invitado-local-") -> idOMac.removePrefix("invitado-local-")
+            idOMac.startsWith("usuario-local-")  -> idOMac.removePrefix("usuario-local-")
+            else -> null
+        }
+        val rawId = (sinPrefijo ?: idOMac).trim()
+        val rawNorm = rawId.replace("-", "").lowercase()
+        val idInvitado = "invitado-local-$rawId"
+        val idUsuario  = "usuario-local-$rawId"
 
         dispositivosDescubiertos.forEach { (key, disp) ->
             val coincide = disp.id.equals(idOMac, ignoreCase = true) ||
+                disp.id.equals(rawId, ignoreCase = true) ||
+                disp.id.equals(idInvitado, ignoreCase = true) ||
+                disp.id.equals(idUsuario, ignoreCase = true) ||
                 disp.usuarioId?.equals(idOMac, ignoreCase = true) == true ||
+                disp.usuarioId?.equals(rawId, ignoreCase = true) == true ||
+                disp.usuarioId?.equals(idInvitado, ignoreCase = true) == true ||
+                disp.usuarioId?.equals(idUsuario, ignoreCase = true) == true ||
                 disp.macAddress?.equals(idOMac, ignoreCase = true) == true ||
-                (sinPrefijo != null && (disp.id.equals(sinPrefijo, ignoreCase = true) || disp.usuarioId?.equals(sinPrefijo, ignoreCase = true) == true)) ||
-                (conPrefijo != null && (disp.id.equals(conPrefijo, ignoreCase = true) || disp.usuarioId?.equals(conPrefijo, ignoreCase = true) == true)) ||
+                disp.macAddress?.equals(rawId, ignoreCase = true) == true ||
+                (rawNorm.isNotEmpty() && (
+                    disp.id.replace("-", "").trim().lowercase() == rawNorm ||
+                    disp.usuarioId?.replace("-", "")?.trim()?.lowercase() == rawNorm ||
+                    disp.macAddress?.replace("-", "")?.trim()?.lowercase() == rawNorm
+                )) ||
                 (targetNorm.isNotEmpty() && (
                     disp.id.replace("-", "").trim().lowercase() == targetNorm ||
                     disp.usuarioId?.replace("-", "")?.trim()?.lowercase() == targetNorm ||
@@ -814,16 +810,19 @@ class ProximityManagerBle(
             }
         }
         if (idOMac.isNotBlank()) {
+            val claves = listOfNotNull(
+                idOMac.takeIf { it.isNotBlank() },
+                rawId.takeIf { it.isNotBlank() },
+                idInvitado.takeIf { it.isNotBlank() },
+                idUsuario.takeIf { it.isNotBlank() },
+                targetNorm.takeIf { it.isNotBlank() },
+                rawNorm.takeIf { it.isNotBlank() }
+            ).distinct()
+
             if (estado != null && vence != null && vence > ahora) {
-                estadosLocalesPorUsuario[idOMac] = estado to vence
-                if (targetNorm.isNotEmpty()) estadosLocalesPorUsuario[targetNorm] = estado to vence
-                if (sinPrefijo != null) estadosLocalesPorUsuario[sinPrefijo] = estado to vence
-                if (conPrefijo != null) estadosLocalesPorUsuario[conPrefijo] = estado to vence
+                claves.forEach { k -> estadosLocalesPorUsuario[k] = estado to vence }
             } else {
-                estadosLocalesPorUsuario.remove(idOMac)
-                if (targetNorm.isNotEmpty()) estadosLocalesPorUsuario.remove(targetNorm)
-                if (sinPrefijo != null) estadosLocalesPorUsuario.remove(sinPrefijo)
-                if (conPrefijo != null) estadosLocalesPorUsuario.remove(conPrefijo)
+                claves.forEach { k -> estadosLocalesPorUsuario.remove(k) }
             }
         }
         if (modificado || dispositivosDescubiertos.isNotEmpty()) {
