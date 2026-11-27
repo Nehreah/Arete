@@ -32,3 +32,23 @@
 # Google ErrorProne annotations (Tink / Security-Crypto)
 -dontwarn com.google.errorprone.annotations.**
 
+# Mantener paquetes completos de red, BLE y mensajería mesh
+-keep class com.renea.arete_social.data.mesh.** { *; }
+-keep interface com.renea.arete_social.data.mesh.** { *; }
+-keep class com.renea.arete_social.data.proximity.** { *; }
+-keep interface com.renea.arete_social.data.proximity.** { *; }
+
+# Mantener callbacks nativos de Bluetooth del framework
+-keepclassmembers class * extends android.bluetooth.BluetoothGattCallback {
+    public *;
+}
+-keepclassmembers class * extends android.bluetooth.BluetoothGattServerCallback {
+    public *;
+}
+-keepclassmembers class * extends android.bluetooth.le.ScanCallback {
+    public *;
+}
+-keepclassmembers class * extends android.bluetooth.le.AdvertiseCallback {
+    public *;
+}
+
