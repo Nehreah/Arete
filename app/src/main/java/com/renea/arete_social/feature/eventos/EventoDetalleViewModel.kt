@@ -20,40 +20,38 @@ class EventoDetalleViewModel(
     val estado: StateFlow<EventoDetalleUiState> = _estado.asStateFlow()
 
     init {
-        cargar()
+        viewModelScope.launch { cargar() }
     }
 
     fun recargar() {
-        cargar()
+        viewModelScope.launch { cargar() }
     }
 
-    private fun cargar() {
-        viewModelScope.launch {
-            val evento = repositorioEventos.obtenerPorId(eventoId)
-            if (evento == null) {
-                repositorioEventos.notificarEliminado(eventoId)
-                _estado.value = EventoDetalleUiState.Error("No se encontró el evento")
-                return@launch
-            }
-
-            val participantesConRoles = repositorioEventos.listarParticipantesConRoles(eventoId)
-            val esCreador = evento.creadorId == usuarioId
-            val esAdminEvento = evento.adminsIds.contains(usuarioId)
-            var esAdminComunidad = false
-            if (!evento.comunidadId.isNullOrBlank() && repositorioComunidades != null) {
-                val rol = repositorioComunidades.obtenerRolMiembro(evento.comunidadId, usuarioId)
-                esAdminComunidad = RolComunidad.desdeCodigo(rol).puedeGestionar()
-            }
-            val puedeGestionar = esCreador || esAdminEvento || esAdminComunidad
-
-            _estado.value = EventoDetalleUiState.Listo(
-                evento = evento,
-                uniendose = false,
-                participantesConRoles = participantesConRoles,
-                puedeGestionar = puedeGestionar,
-                esCreador = esCreador
-            )
+    private suspend fun cargar() {
+        val evento = repositorioEventos.obtenerPorId(eventoId)
+        if (evento == null) {
+            repositorioEventos.notificarEliminado(eventoId)
+            _estado.value = EventoDetalleUiState.Error("No se encontró el evento")
+            return
         }
+
+        val participantesConRoles = repositorioEventos.listarParticipantesConRoles(eventoId)
+        val esCreador = evento.creadorId == usuarioId
+        val esAdminEvento = evento.adminsIds.contains(usuarioId)
+        var esAdminComunidad = false
+        if (!evento.comunidadId.isNullOrBlank() && repositorioComunidades != null) {
+            val rol = repositorioComunidades.obtenerRolMiembro(evento.comunidadId, usuarioId)
+            esAdminComunidad = RolComunidad.desdeCodigo(rol).puedeGestionar()
+        }
+        val puedeGestionar = esCreador || esAdminEvento || esAdminComunidad
+
+        _estado.value = EventoDetalleUiState.Listo(
+            evento = evento,
+            uniendose = false,
+            participantesConRoles = participantesConRoles,
+            puedeGestionar = puedeGestionar,
+            esCreador = esCreador
+        )
     }
 
     fun unirse() {
@@ -62,7 +60,7 @@ class EventoDetalleViewModel(
         _estado.value = actual.copy(uniendose = true)
         viewModelScope.launch {
             runCatching { repositorioEventos.unirse(eventoId, usuarioId) }
-                .onSuccess { cargar() }
+                .onSuccess { cargar() }   // suspend: se ejecuta secuencialmente tras el upsert
                 .onFailure {
                     val trasFallo = _estado.value
                     if (trasFallo is EventoDetalleUiState.Listo) {
@@ -78,7 +76,7 @@ class EventoDetalleViewModel(
         _estado.value = actual.copy(uniendose = true)
         viewModelScope.launch {
             runCatching { repositorioEventos.salir(eventoId, usuarioId) }
-                .onSuccess { cargar() }
+                .onSuccess { cargar() }   // suspend: lee después del removeParticipant
                 .onFailure {
                     val trasFallo = _estado.value
                     if (trasFallo is EventoDetalleUiState.Listo) {
@@ -87,6 +85,7 @@ class EventoDetalleViewModel(
                 }
         }
     }
+
 
     fun actualizar(
         nombre: String,

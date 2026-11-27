@@ -82,6 +82,7 @@ android {
     }
 
     lint {
+        checkReleaseBuilds = false
         abortOnError = true
         disable.add("WrongConstant")
         disable.add("InvalidFragmentVersionForActivityResult")

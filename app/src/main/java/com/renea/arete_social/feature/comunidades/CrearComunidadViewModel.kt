@@ -32,7 +32,8 @@ class CrearComunidadViewModel(
         }
         _estado.value = CrearComunidadUiState.Guardando
         viewModelScope.launch {
-            runCatching { repositorioComunidades.crearComunidad(nombre, descripcion, tipo, fotoBytes, extension) }
+            val tipoEfectivo = tipo.ifBlank { "ABIERTA" }
+            runCatching { repositorioComunidades.crearComunidad(nombre, descripcion, tipoEfectivo, fotoBytes, extension) }
                 .onSuccess { comunidad -> _estado.value = CrearComunidadUiState.Creada(comunidad.id) }
                 .onFailure { error ->
                     _estado.value = CrearComunidadUiState.Error(error.message ?: "No se pudo crear la comunidad")

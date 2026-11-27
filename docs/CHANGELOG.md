@@ -5,7 +5,14 @@ Todas las modificaciones notables a este proyecto se documentarán en este archi
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.1.1] - 2026-11-26
+
+### Corregido
+- **Crear comunidad**: El campo `tipo` se guardaba vacío en Room cuando el usuario no seleccionaba categoría; ahora se aplica `"ABIERTA"` como valor por defecto antes de persistir.
+- **Miembros de eventos**: Al unirse o salir de un evento, la lista de participantes no se actualizaba visualmente porque `cargar()` lanzaba una corutina independiente que podía ejecutarse antes de que Room confirmara la escritura. Ahora `cargar()` es `suspend` y se ejecuta secuencialmente dentro de la misma corutina, garantizando que los datos leídos son los ya escritos.
+
 ## [1.1.0] - 2026-11-25
+
 
 ### Añadido
 - Manifiesto de autoría y visión emancipadora comunitaria en `README.md`, `docs/index.html`, `docs/CONTRIBUTING.md`, `docs/EULA.md` y `docs/INDICE.md`.
