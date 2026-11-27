@@ -118,7 +118,7 @@ dependencies {
     implementation(libs.osmdroid.android)
 
     // Miau Snake - Retos QR (ZXing offline 100% libre)
-    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.google.zxing:core:3.5.4")
 
     // Navegación entre pantallas con rutas tipadas (@Serializable)
     implementation(libs.androidx.navigation.compose)
